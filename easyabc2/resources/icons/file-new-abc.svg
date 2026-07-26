@@ -1,0 +1,24 @@
+<svg
+  xmlns="http://www.w3.org/2000/svg"
+  width="24"
+  height="24"
+  viewBox="0 0 24 24"
+  fill="none"
+  stroke="currentColor"
+  stroke-width="1.2"
+  stroke-linecap="round"
+  stroke-linejoin="round"
+>
+  <path d="M14 3v4a1 1 0 0 0 1 1h4" stroke-width="1" />
+  <path d="M5 13v-8a2 2 0 0 1 2 -2h7l5 5v4" stroke-width="1" />
+<!-- little + sign -->
+  <path d="M7 15l0 2.5" stroke-width="1"/>
+  <path d="M5.75 16.25l2.5 0" stroke-width="1"/>
+<!-- A letter -->
+  <path d="M10 21v-4.5a1.2 1.5 0 1 1 2.5 0v4.5" />
+  <path d="M10 17.8h2.5" />
+<!-- B letter -->
+  <path d="M14.5 21h1a1.4 1.2 0 1 0 0 -3h-1h0.8a1.4 1.2 0 0 0 0 -3h-0.8v6" />
+<!-- C letter -->
+  <path d="M21.5 16.2a1.2 1.5 0 1 0 -2.5 0.8v2.2a1.2 1.5 0 0 0 2.5 0.5" />
+</svg>

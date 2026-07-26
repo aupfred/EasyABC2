@@ -1,0 +1,69 @@
+<!DOCTYPE HTML><html><head><meta charset="utf-8"></head>
+<body><pre>2021-02-06
+
+	* Revision: 15
+	- default bufferlengte is 1024 voor Linux en 4096 voor andere systemen
+
+	* Revision: 14
+	- laad alleen versie 2 van fluidsynth
+	- functie bs() converteert unicode strings naar byte strings
+	- alle b'...' literals vervangen door bs('...')
+	- defailt gain naar 0.6
+
+	* Revision: 13
+	- veranderingen voor python 2.7 en python3
+	- getFnObj omzeilt de typering van ctypes
+	- API functies vereisen byte-strings in python3 -&gt; .encode ('utf-8')
+	- in testplayer: forceer laden van midi file door af te spelen zonder geluid
+	en dan weer terug te spoelen
+
+	* Revision: 12
+	- veranderingen voor libfluidsynth.so.2.0.1 maar voor oudere versie van
+	python, waar ctypes geen type checking doet
+
+	* Revision: 11
+	- conversie naar hg
+
+2014-11-11
+
+	* Revision: 10
+	Version 03:
+	- (GUI) when saving use the same gain value as for playback (previously no
+	gain was set).
+	- (GUI) avoid exception when cancelling selection of a midi file
+	- (GUI) all possible buffer sizes (64 - 8192) can be selected.
+	- (GUI) when driver initialization fails show "---" as text in the driver
+	selection button.
+
+2014-11-03
+
+	* Revision: 9
+	Version 02:
+	- Changed loading of libfluidsynth so that it works on both Win32 and Linux.
+	- The libfluidsynth library is only loaded locally from the program directory.
+	- Added driver selection (for Linux, defaults to pulseaudio, for Win32 to
+	dsound).
+	- Added buffer size setting. Slower machines need more buffer space (default
+	1024 bytes, 2 buffers)
+	- Added reverb/chorus settings, selection of reverb models.
+	- library intl.dll appeared ot be needed on a clean Win32 (without GTK+
+	installed). Added to Win32 distribution.
+
+2014-10-31
+
+	* Revision: 8
+	- Laatste versie van Windows voor de port naar Linux
+
+2012-07-11
+
+	* Revision: 7
+	De reverb- en chorus-model settings verwijderd. Dit is tenslotte een
+	minimale player!
+
+	* Revision: 6
+	Set reverb-level en chorus-level op alle midi kanalen. De model-settings uit
+	de vorige commit worden niet gebruikt. De default models geven een redelijk
+	effect. Waar het om gaat is dat de meeste midi files geen control-change
+	messages bevatten voor reverb en chorus en dan hoor je ook geen effect.
+
+</pre></body></html>

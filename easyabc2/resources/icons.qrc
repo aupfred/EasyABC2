@@ -1,0 +1,14 @@
+<!DOCTYPE RCC><RCC version="1.0">
+<qresource>
+    <file>icons/player-start.svg</file>
+    <file>icons/player-pause.svg</file>
+    <file>icons/player-stop.svg</file>
+    <file>icons/file-new-abc.svg</file>
+    <file>icons/file-open-abc.svg</file>
+    <file>icons/file-save-abc.svg</file>
+    <file>icons/player-loop.svg</file>
+    <file>icons/tune-current.svg</file>
+    <file>icons/tune-playing.svg</file>
+    <file>icons/tab-modified.svg</file>
+  </qresource>
+</RCC>

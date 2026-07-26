@@ -1,0 +1,27 @@
+[project]
+name = "easyabc2"
+version = "2.0.0a"
+description = "Python ABC music editor using ABC2SVG from Jef Moine"
+readme = "README.md"
+requires-python = ">=3.12"
+dependencies = [
+    "PySide6==6.11.1",
+    "PySide6_Addons==6.11.1",
+    "PySide6_Essentials==6.11.1",
+    "quickjs==1.19.4",
+    "shiboken6==6.11.1",
+]
+
+[build-system]
+requires = ["setuptools"]
+build-backend = "setuptools.build_meta"
+
+#[tool.setuptools]
+#packages = ["easyabc2"]
+
+# Tout ce qui doit être installé dans le venv
+[tool.setuptools.package-data]
+easyabc2 = [
+    "third_party/**/*",
+    "resources/**/*"
+]

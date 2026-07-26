@@ -1,0 +1,45 @@
+<html>
+<style>
+    p, pre {margin-left: 120px}
+    h3 {float: left}
+</style>
+    <div style="float:right; margin:10px; padding:5px; border:solid 1px">
+        <a href="index.html">more music software</a></div>
+    <div style="width:800px">
+    <h3>testplayer</h3>
+<p><em>testplayer</em> is a Python program that can play midi files using FluidSynth.
+It supports both python3 and python2.</p>
+
+<p>The GUI part of the player (<em>testplayer.py</em>) has the following features:
+<br/>- load a single midi file and show its duration (in midi ticks)
+<br/>- play, pause, rewind
+<br/>- positioning of playback (to a position specified in midi ticks)
+<br/>- fast saving of a rendition of the midi file to an ogg/vorbis file
+<br/>- setting the quality level of vorbis encoding (0.0-1.0)
+<br/>- setting chorus and reverb parameters
+<br/>- selecting the audio driver and setting its buffer size (latency)
+<br/>- minimal GUI with Tkinter
+</p>
+
+<p>A Python interface to FluidSynth and its internal midi player is available in
+the file <em>fluidsynth.py</em>. It loads the fluidsynth library from the current
+working directory, and if it cannot find it there, it loads the system version of
+the library.
+<br><em>testplayer</em> needs version 2 of Fluidsynth (version > 2.0.1).
+</p>
+<p>For Windows the binary distribution of fluidsynth-2.1.7 is included.
+<br/>For Linux the shared library <em>libfluidsynth.so.2.3.7</em> (compiled for Ubuntu 18.04) is
+included, because the system version of fluidsynth in 18.04 is too old (1.9.9).
+</p>
+
+<h3>Download</h3>
+<p>Revision: 15</p>
+<p>Stand alone Win32 executable: <a href="testplayer.exe-15.zip">testplayer.exe-15.zip</a>
+<br>The python scripts: <a href="testplayer.py-15.zip">testplayer.py-15.zip</a>
+<br>The <a href="testplayer_changelog.html">change log</a> (in Dutch)
+</p>
+
+</div>
+<div style="float:right;"><i>bug reports, remarks to</i>:<img src="index_email.png" align="top"/></div>
+</html>
+    

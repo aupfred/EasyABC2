@@ -1,0 +1,34 @@
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# macOS
+.DS_Store
+
+# PyInstaller
+build/
+dist/
+#*.spec
+#packaging/
+
+# local execution
+easyabc2.egg-info/
+
+# Qt / PySide6 generated
+icons_rc.py
+myicons_rc.py
+
+# gettext compiled files
+# *.mo
+
+# Editor backups
+*~
+*.bak
+
+# Logs
+*.log
+
+# Misc
+*.webarchive

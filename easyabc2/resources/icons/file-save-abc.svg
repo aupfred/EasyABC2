@@ -1,0 +1,28 @@
+<svg
+  xmlns="http://www.w3.org/2000/svg"
+  width="24"
+  height="24"
+  viewBox="0 0 24 24"
+  fill="none"
+  stroke="currentColor"
+  stroke-width="1.1"
+  stroke-linecap="round"
+  stroke-linejoin="round"
+>
+<!-- music note -->
+  <path d="M3 8a1 1 0 1 0 2 0a1 1 0 1 0 -2 0" />
+  <path d="M5 8l0 -5l2 1" />
+<!-- open arrow -->
+  <path d="M13.5 7.7l1.2 1.2l1.2 -1.2" stroke-width="1.2"/>
+  <path d="M9.2 5.5h4a1.5 1.5 0 0 1 1.5 1.5v0.8" />
+<!-- file -->
+  <path d="M16.75 10.25v2.5a1 1 0 0 0 1 1h2.5" stroke-width="0.8" />
+  <path d="M6.5 20.25v-8a2 2 0 0 1 2 -2h8.25l3.5 3.5v6.5" stroke-width="0.8" />
+<!-- A letter -->
+  <path d="M8 21v-4.5a1.2 1.5 0 1 1 2.5 0v4.5" />
+  <path d="M8 17.8h2.5" />
+<!-- B letter -->
+  <path d="M12.2 21h1a1.4 1.2 0 1 0 0 -3h-1h0.8a1.4 1.2 0 0 0 0 -3h-0.8v6" />
+<!-- C letter -->
+  <path d="M19 16.2a1.2 1.5 0 1 0 -2.5 0.8v2.2a1.2 1.5 0 0 0 2.5 0.5" />
+</svg>
