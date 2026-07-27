@@ -17,7 +17,7 @@ dist/
 easyabc2.egg-info/
 
 # Qt / PySide6 generated
-icons_rc.py
+#icons_rc.py
 myicons_rc.py
 
 # gettext compiled files
