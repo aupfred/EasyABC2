@@ -65,25 +65,49 @@ The build process produces:
 - a standalone executable  
 - a `dist/` directory containing all required files  
 
+To ease the packaging is done using **PyInstaller**.  
+The project includes a dedicated `.spec` file present in the tools folder to ensure reproducible builds.
+Note: the `.spec` file to avoid an issue with setuptools
+
+
 ---
 
 ## 4. Packaging on macOS  
 
-### 4.1 Basic command  
+To build EasyABC2 on macOS:
+
+1. Clone the repository  
+2. Ensure the following folders exist at the root level:  
+   - `easyabc2/`  
+   - `tools/`  
+3. Run the following command **from the root of the project**:
+
 ```
-pyinstaller --windowed --name EasyABC2 \
-    --add-data "easyabc2/resources:easyabc2/resources" \
-    --icon easyabc2/resources/icons/app.icns \
-    easyabc2/easyabc_app.py
+pyinstaller -y tools/EasyABC2-mac.spec
 ```
 
-### 4.2 Notes for macOS  
-- macOS requires `.icns` icons  
-- PySide6 bundles Qt frameworks automatically  
-- Gatekeeper may block unsigned apps  
-- Optional: sign and notarize the app (future improvement)
+This will generate:
 
-### 4.3 Testing the build  
+```
+dist/EasyABC2.app
+```
+
+The `.spec` file handles:
+
+- embedding resources  
+- embedding abc2midi / midi2abc  
+- embedding abc2svg  
+- generating a proper macOS Info.plist  
+- setting the application icon  
+- file associations (.abc, .mid, .midi)
+
+Once generated, you can run either directly by double-clicking the app or by launching the following command from the root of the project:
+```
+./dist/EasyABC2.app/Contents/MacOS/EasyABC2
+```
+
+or
+
 ```
 open dist/EasyABC2.app
 ```
@@ -91,6 +115,11 @@ open dist/EasyABC2.app
 ---
 
 ## 5. Packaging on Windows  
+
+A Windows `.spec` file will be provided later.
+
+For experimentation only, you may try the basic command.
+
 
 ### 5.1 Basic command  
 ```
@@ -116,6 +145,10 @@ dist/EasyABC2.exe
 ---
 
 ## 6. Packaging on Linux  
+
+A Linux `.spec` file will be provided later.
+
+For experimentation only, you may try the basic command.
 
 ### 6.1 Basic command  
 ```

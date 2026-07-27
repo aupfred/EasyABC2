@@ -53,14 +53,14 @@ python3 easyabc2/run_easyabc2.py
 ## Packaging
 
 Packaging is done using **PyInstaller**.  
-A dedicated `.spec` file is provided to ensure reproducible macOS builds.
+A dedicated `.spec` file is provided in the tools folder to ensure reproducible macOS builds.
 
 ### macOS
 
 From the root of the project:
 
 ```bash
-pyinstaller -y packaging/EasyABC2-mac.spec
+pyinstaller -y tools/EasyABC2-mac.spec
 ```
 
 This generates:
@@ -102,9 +102,6 @@ EasyABC2/
 │   ├── resources/            # Icons, images, locales, etc.
 │   └── third_party/          # abc2svg, abcmidi, mplay
 │
-├── packaging/
-│   └── EasyABC2-mac.spec     # macOS PyInstaller spec file
-│
 ├── docs/
 │   ├── overview.md           # Overview of EasyABC2
 │   ├── user_guide_en.md      # User guide
@@ -112,6 +109,9 @@ EasyABC2/
 │   ├── testers.md            # Testing guidelines
 │   ├── build.md              # Build instructions
 │   └── developers.md         # Developer documentation
+│
+├── tools/
+│   └── EasyABC2-mac.spec     # macOS PyInstaller spec file
 │
 ├── pyproject.toml            # Build configuration
 └── README.md                 # This file

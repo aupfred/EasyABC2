@@ -503,7 +503,8 @@ msgfmt fr.po -o fr.mo
 
 ## 8. Packaging the Application  
 Packaging is done using **PyInstaller**.  
-The project includes a dedicated `.spec` file to ensure reproducible builds.
+The project includes a dedicated `.spec` file present in the tools folder to ensure reproducible builds.
+Note: the `.spec` file to avoid an issue with setuptools
 
 ---
 
@@ -514,11 +515,11 @@ To build EasyABC2 on macOS:
 1. Clone the repository  
 2. Ensure the following folders exist at the root level:  
    - `easyabc2/`  
-   - `packaging/`  
+   - `tools/`  
 3. Run the following command **from the root of the project**:
 
 ```
-pyinstaller -y packaging/EasyABC2-mac.spec
+pyinstaller -y tools/EasyABC2-mac.spec
 ```
 
 This will generate:
