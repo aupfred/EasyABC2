@@ -104,6 +104,17 @@ project_root/
 pip install -r requirements.txt
 ```
 
+EasyABC relies also on abc2midi, midi2abc and fluidsynth on Linux and Windows.
+The versions of abc2midi and midi2abc provided in third_party/ are for macOS.
+
+The dependencies can be installed this way on Debian like system:
+```bash
+sudo apt install python3.13-venv
+sudo apt install build-essential python3-dev pkg-config libffi-dev
+sudo apt install abcmidi
+sudo apt install fluidsynth libfluidsynth3 libfluidsynth-dev
+```
+
 ### 3.2 Run the application  
 ```
 python -m easyabc2

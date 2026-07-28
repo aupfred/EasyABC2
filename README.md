@@ -24,16 +24,27 @@ This project is currently in active development (alpha stage).
 Clone the repository:
 
 ```bash
-git clone https://github.com/<your-username>/EasyABC2.git
+git clone https://github.com/aupfred/EasyABC2.git
 cd EasyABC2
 ```
 
 EasyABC2 requires Python 3.12 or later.
+On Linux, you might need to install python-venv to enable the virtual environment. For instance on Debian:
+```bash
+sudo apt install python3-venv
+```
+
 Create a virtual environment:
 
 ```bash
 python3 -m venv easyabc2-env
 source easyabc2-env/bin/activate
+pip install --upgrade pip
+```
+
+On Linux, install necessary dependencies to build quickjs:
+```bash
+sudo apt install build-essential python3-dev pkg-config libffi-dev
 ```
 
 Install EasyABC2 in editable mode:
@@ -42,11 +53,28 @@ Install EasyABC2 in editable mode:
 pip install -e .
 ```
 
+Install at least abcmidi and fluidsynth.
+On Debian-based systems:
+```bash
+sudo apt install abcmidi
+sudo apt install fluidsynth libfluidsynth3 libfluidsynth-dev
+```
+
 Launch the application:
 
 ```bash
 python3 easyabc2/run_easyabc2.py
 ```
+
+or
+```bash
+python3 -m easyabc2
+```
+
+Once started, open the Preferences dialog to configure
+* the path to abc2midi and midi2abc
+* the fluidsynth library (use the Search/Test button to verify the installation)
+* the soundfont path
 
 ---
 
