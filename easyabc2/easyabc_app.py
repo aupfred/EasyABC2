@@ -1,4 +1,5 @@
 # easyabc2/easyabc_app.py
+import sys
 import locale
 
 from PySide6.QtWidgets import QApplication
@@ -11,6 +12,23 @@ from easyabc2.ui.main_window import MainWindow
 from easyabc2.ui.search_dialog import SearchDialog
 from easyabc2.engines.engines_manager import EngineManager
 
+def init_quickjs_locale():
+    # macOS: UTF‑8 recommended
+    if sys.platform == "darwin":
+        try:
+            locale.setlocale(locale.LC_NUMERIC, "en_US.UTF-8")
+            locale.setlocale(locale.LC_MONETARY, "en_US.UTF-8")
+            return
+        except locale.Error:
+            # fallback just in case (rare)
+            locale.setlocale(locale.LC_NUMERIC, "C")
+            locale.setlocale(locale.LC_MONETARY, "C")
+            return
+
+    # Linux / Windows : 'C' is preferred
+    locale.setlocale(locale.LC_NUMERIC, "C")
+    locale.setlocale(locale.LC_MONETARY, "C")
+
 class EasyABCApp(QApplication):
     def __init__(self, argv):
         print("Initialising EasyABCApp")
@@ -21,8 +39,7 @@ class EasyABCApp(QApplication):
         self.app_data_dir = get_app_data_dir("EasyABC2")
 
         # Fix locale for quickjs
-        locale.setlocale(locale.LC_NUMERIC, 'en_US.UTF-8')
-        locale.setlocale(locale.LC_MONETARY, 'en_US.UTF-8')
+        init_quickjs_locale()
 
         # Preferences
         self.prefs = UserPreferences(self.app_data_dir / "preferences.json")
