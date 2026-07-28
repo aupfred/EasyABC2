@@ -17,59 +17,70 @@ from easyabc2.utils.logging_utils import logger
 
 logger.debug("[FluidSynthPlayer] Importing…")
 
-def find_fluidsynth_library():
+def find_fluidsynth_library(user_path=None):
     """
-    Returns path to fluisynth library to load.
-    Manage :
-    - dev mode
-    - py2app (macOS)
-    - py2exe / PyInstaller (Windows)
-    - Linux
+    Returns a valid FluidSynth library path.
+    Never overwrites a valid user path.
+    Provides OS-specific fallbacks.
     """
 
-    # --- 1. Case macOS package (py2app) ---
-    if sys.platform == "darwin" and getattr(sys, "frozen", False):
-        resource = os.environ.get("RESOURCEPATH")
-        if resource:
-            frameworks = os.path.join(os.path.dirname(resource), "Frameworks")
-            candidates = glob.glob(os.path.join(frameworks, "libfluidsynth*"))
-            if candidates:
-                return candidates[0]
+    # --- 1. User path takes priority ---
+    if user_path:
+        up = user_path.strip()
+        if os.path.exists(up):
+            try:
+                CDLL(up)
+                return up
+            except Exception:
+                logger.error(f"[FluidSynth] User path invalid: {up}")
 
-    # --- 2. Case Windows package (py2exe / PyInstaller) ---
-    if sys.platform.startswith("win") and getattr(sys, "frozen", False):
-        exe_dir = os.path.dirname(sys.executable)
-        candidates = glob.glob(os.path.join(exe_dir, "libfluidsynth*"))
-        if candidates:
-            return candidates[0]
+    # --- 2. OS-specific known locations ---
+    candidates = []
 
-    # --- 3. Case Linux package ---
-    if sys.platform.startswith("linux") and getattr(sys, "frozen", False):
-        exe_dir = os.path.dirname(sys.executable)
-        candidates = glob.glob(os.path.join(exe_dir, "libfluidsynth*"))
-        if candidates:
-            return candidates[0]
+    if sys.platform == "darwin":
+        candidates += [
+            "/Library/Frameworks/FluidSynth.framework/FluidSynth",
+            "/opt/homebrew/lib/libfluidsynth.dylib",
+            "/usr/local/lib/libfluidsynth.dylib",
+        ]
 
-    # --- 4. Cas developpement : dossier courant ---
-    candidates = glob.glob("./libfluidsynth*")
-    if candidates:
-        return candidates[0]
+    elif sys.platform.startswith("linux"):
+        candidates += [
+            "/usr/lib/x86_64-linux-gnu/libfluidsynth.so",
+            "/usr/lib/x86_64-linux-gnu/libfluidsynth.so.3",
+        ]
 
-    # --- 5. Fallback : find_library ---
+    elif sys.platform.startswith("win"):
+        candidates += [
+            "C:\\Windows\\System32\\fluidsynth.dll",
+            "C:\\Program Files\\Fluidsynth\\fluidsynth.dll",
+        ]
+
+    # --- 3. Test candidates ---
+    for c in candidates:
+        if os.path.exists(c):
+            try:
+                CDLL(c)
+                return c
+            except Exception:
+                pass
+
+    # --- 4. Fallback: find_library ---
     lib = (
         find_library("fluidsynth")
         or find_library("libfluidsynth")
         or find_library("libfluidsynth-2")
     )
-    return lib
 
-def load_fluidsynth():
-    lib = find_fluidsynth_library()
-    if not lib:
-        raise ImportError("FluidSynth Library not found")
+    if lib:
+        try:
+            CDLL(lib)
+            return lib
+        except Exception:
+            pass
 
-    F = load_fluidsynth_from_path(lib)
-    return F
+    # --- 5. Final failure ---
+    return None
 
 def load_fluidsynth_from_path(lib):
     try:
@@ -198,35 +209,6 @@ def load_fluidsynth_from_path(lib):
         return F
     except Exception as e:
         raise ImportError(f"Error while loading FluidSynth: {e}")
-#class FluidSynthPlayer(MidiPlayer):
-#    def __init__(self, sf2_path):
-#        super(FluidSynthPlayer, self).__init__()
-#        logger.debug("FS: load_fluidsynth()…")
-#        self.F = load_fluidsynth()
-#        logger.debug("FS: Synth()…")
-#        self.fs = Synth(self.F, gain=1.0, bsize=2048) # make a synth
-#
-#        driver = None
-#        if sys.platform.startswith('linux'):
-#            driver = 'pulseaudio'
-#        if sys.platform == "darwin":
-#            driver = 'coreaudio'
-#        elif sys.platform.startswith("win"):
-#            driver = 'dsound'
-#        logger.debug("FS: Synth.start()…")
-#        self.fs.start(driver)  # set default output driver and start clock
-#        self.soundfont_path = sf2_path
-#        logger.debug("FS: sfload()…")
-#        self.sfid = self.fs.sfload(sf2_path)
-#        logger.debug("FS: program_select()…")
-#        self.fs.program_select(0, self.sfid, 0, 0)
-#        logger.debug("FS: Player()…")
-#        self.p = Player(self.F, self.fs)   # make a new player
-#        self.duration_in_ticks = 0   # length of midi file
-#        self.pause_time = 0        # time in midi ticks where player stopped
-#        self.pending_soundfont = None
-#        self._loop_midi_playback = 0
-#        logger.debug("FS: FluidSynthPlayer init OK")
 
 class FluidSynthPlayer(MidiPlayer):
     def __init__(self, prefs):

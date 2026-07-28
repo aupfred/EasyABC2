@@ -11,8 +11,7 @@ from PySide6.QtWidgets import (
 from PySide6.QtGui import QColor
 
 from easyabc2.ui.abc_editor import ABCEditor
-#from easyabc2.ui.code_editor import CodeEditor
-#from easyabc2.syntax.abc_styler2 import ABCHighlighter
+from easyabc2.engines.midi.fluidsynthplayer import find_fluidsynth_library, load_fluidsynth_from_path
 
 from easyabc2.utils.easyabc_utils import run_process
 from easyabc2 import _
@@ -153,7 +152,7 @@ class PreferencesDialog(QDialog):
         self.txt_fslib = QLineEdit(self.prefs["fluidsynth_library_path"])
 
         btn_lib_browse = QPushButton(_("Browse…"))
-        btn_lib_search = QPushButton(_("Search…"))
+        btn_lib_search = QPushButton(_("Search/Test"))
 
         def browse_lib():
             path, _filter = QFileDialog.getOpenFileName(self, _("Choose FluidSynth library"))
@@ -163,13 +162,13 @@ class PreferencesDialog(QDialog):
         btn_lib_browse.clicked.connect(browse_lib)
 
         def search_lib():
-            from easyabc2.engines.midi.fluidsynthplayer import find_fluidsynth_library
-            lib = find_fluidsynth_library()
+            current = self.txt_fslib.text().strip()
+            lib = find_fluidsynth_library(current)
             if lib:
                 self.txt_fslib.setText(lib)
                 self._update_fslib_status()
             else:
-                self.lbl_fslib_status.setText(_("No library found"))
+                self.lbl_fslib_status.setText(_("No library found. For instance, on Debian you might find it in /usr/lib/x86_64-linux-gnu/libfluidsynth.so.3"))
 
         btn_lib_search.clicked.connect(search_lib)
 
@@ -204,9 +203,24 @@ class PreferencesDialog(QDialog):
             self.lbl_fslib_status.setText(_("No library configured"))
             return
         if not os.path.exists(path):
-            self.lbl_fslib_status.setText(_("Invalid path"))
+            self.lbl_fslib_status.setText(_("Invalid path.  For instance, on Debian you might find it in /usr/lib/x86_64-linux-gnu/libfluidsynth.so.3"))
             return
-        self.lbl_fslib_status.setText(_("OK"))
+
+        try:
+            F = load_fluidsynth_from_path(path)
+            from ctypes import c_int, byref
+            x, y, z = c_int(), c_int(), c_int()
+            try:
+                F.fluid_version(byref(x), byref(y), byref(z))
+                version = f"{x.value}.{y.value}.{z.value}"
+            except:
+                version = None
+            if version:
+                self.lbl_fslib_status.setText(_("OK — FluidSynth version: ") + version)
+            else:
+                self.lbl_fslib_status.setText(_("Library loaded, but version unknown"))
+        except Exception as e:
+            self.lbl_fslib_status.setText(_("Found library but cannot load: ") + str(e))
 
     # ------------------------------------------------------------
     # Tab: Follow Notes
