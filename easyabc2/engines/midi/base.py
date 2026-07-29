@@ -1,5 +1,7 @@
 # easyabc2/engines/midi/base.py
 
+from easyabc2.utils.logging_utils import logger
+
 class MidiPlayer:
     """
     Abstract Class to build MIDI players for easyabc.
@@ -41,46 +43,56 @@ class MidiPlayer:
 
     def load(self, path: str) -> bool:
         """Load MIDI file. Return True if OK."""
-        raise NotImplementedError
+        logger.warning("Base midi player load not defined")
+        return False
 
     def play(self):
         """Start or resume playback."""
-        raise NotImplementedError
+        logger.warning("Base midi player play not defined")
+        return
 
     def pause(self):
         """Pause playback."""
-        raise NotImplementedError
+        logger.warning("Base midi player pause not defined")
+        return
 
     def stop(self):
         """Stop playback."""
-        raise NotImplementedError
+        logger.warning("Base midi player stop not defined")
+        return
 
     def seek(self, ms_or_ticks: int):
         """Shift to position."""
-        raise NotImplementedError
+        logger.warning("Base midi player seek not defined")
+        return
 
     def tell(self) -> int:
         """Return playback position (ms ou ticks)."""
-        raise NotImplementedError
+        logger.warning("Base midi player tell not defined")
+        return 0
 
     def length(self) -> int:
         """Return tune duration."""
-        raise NotImplementedError
+        logger.warning("Base midi player length not defined")
+        return 100
 
     @property
     def is_loaded(self) -> bool:
         """True if a MIDI file is loaded and ready to play."""
-        raise NotImplementedError
+        logger.warning("Base midi player is_loaded not defined")
+        return False
 
     @property
     def is_playing(self) -> bool:
         """True if playback is currently running."""
-        raise NotImplementedError
+        logger.warning("Base midi player is_playing not defined")
+        return False
 
     @property
     def is_paused(self) -> bool:
         """True if playback is paused."""
-        raise NotImplementedError
+        logger.warning("Base midi player is_paused not defined")
+        return False
 
     @property
     def is_active(self) -> bool:
