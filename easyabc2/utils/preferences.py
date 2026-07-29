@@ -29,7 +29,7 @@ class UserPreferences(QObject):
         "abc2xml_extra_options": "",
         "midi_engine": "mplay",
         "fluidsynth_library_path": "",
-        "soundfont_path": "soundfonts/FluidR3_GM.sf2",
+        "soundfont_path": "",
         "fluidsynth_gain": 1.0,
         "fluidsynth_buffer": 2048,
         "fluidsynth_driver": "",

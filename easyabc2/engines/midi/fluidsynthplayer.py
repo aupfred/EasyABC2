@@ -14,6 +14,7 @@ from ctypes.util import find_library
 from easyabc2.engines.midi.base import MidiPlayer
 from easyabc2.engines.midi.fluidsynth import Synth, Player
 from easyabc2.utils.logging_utils import logger
+from easyabc2.utils.easyabc_utils import RESOURCES_DIR
 
 logger.debug("[FluidSynthPlayer] Importing…")
 
@@ -209,6 +210,33 @@ def load_fluidsynth_from_path(lib):
         return F
     except Exception as e:
         raise ImportError(f"Error while loading FluidSynth: {e}")
+
+def find_soundfont(user_path=None):
+    if user_path:
+        up = user_path.strip()
+        if os.path.exists(up):
+            return up
+        else:
+            logger.error(f"[FluidSynthPlayer] Soundfont user path invalid: {up}")
+
+    # Check packaged resource
+    resource_sf = os.path.join(RESOURCES_DIR, "FluidR3_GM.sf2")
+    if os.path.exists(resource_sf):
+        return resource_sf
+
+    # Linux standard locations
+    if sys.platform.startswith("linux"):
+        candidates = [
+            "/usr/share/sounds/sf2/FluidR3_GM.sf2",
+            "/usr/share/sounds/sf2/FluidR3.sf2",
+            "/usr/share/sounds/sf2/TimGM6.sf2",
+        ]
+        for c in candidates:
+            if os.path.exists(c):
+                return c
+
+    # macOS / Windows → no automatic search
+    return None
 
 class FluidSynthPlayer(MidiPlayer):
     def __init__(self, prefs):

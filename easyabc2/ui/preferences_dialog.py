@@ -3,6 +3,7 @@
 
 import os
 
+from PySide6.QtCore import QTimer
 from PySide6.QtWidgets import (
     QApplication, QDialog, QTabWidget, QWidget, QVBoxLayout, QHBoxLayout, QGridLayout,
     QLabel, QLineEdit, QPushButton, QFileDialog, QRadioButton, QColorDialog,
@@ -11,9 +12,14 @@ from PySide6.QtWidgets import (
 from PySide6.QtGui import QColor
 
 from easyabc2.ui.abc_editor import ABCEditor
-from easyabc2.engines.midi.fluidsynthplayer import find_fluidsynth_library, load_fluidsynth_from_path
+from easyabc2.engines.midi.fluidsynthplayer import find_fluidsynth_library, load_fluidsynth_from_path, find_soundfont
 
 from easyabc2.utils.easyabc_utils import run_process
+from easyabc2.utils.third_party_tools_tester import (
+    test_abc2midi, test_midi2abc, test_abc2svg_scripts,
+    test_fluidsynth_library, test_soundfont,
+    test_xml2abc, test_abc2xml
+)
 from easyabc2 import _
 
 class PreferencesDialog(QDialog):
@@ -51,6 +57,7 @@ class PreferencesDialog(QDialog):
         self.setLayout(layout)
 
         self.resize(600, 400)
+        QTimer.singleShot(0, self._run_initial_tests)
 
     # ------------------------------------------------------------
     # Tab Path
@@ -59,48 +66,57 @@ class PreferencesDialog(QDialog):
         widget = QWidget()
         grid = QGridLayout()
 
-        def add_path(row, label, key):
+        def add_path_with_test(row, label, key, is_dir, test_func):
             lbl = QLabel(label)
             txt = QLineEdit(self.prefs[key])
-            btn = QPushButton(_("Browse…"))
+
+            btn_browse = QPushButton(_("Browse…"))
+            btn_test = QPushButton(_("Test…"))
+            lbl_status = QLabel("")
 
             def browse():
-                path, _filter = QFileDialog.getOpenFileName(self, _("Choose a file"))
+                if is_dir:
+                    path = QFileDialog.getExistingDirectory(self, _("Choose a directory"))
+                else:
+                    path, _filter = QFileDialog.getOpenFileName(self, _("Choose a file"))
                 if path:
                     txt.setText(path)
+                    test()
 
-            btn.clicked.connect(browse)
+            def test():
+                ok, msg = test_func(txt.text().strip())
+                lbl_status.setText(msg)
+
+            btn_browse.clicked.connect(browse)
+            btn_test.clicked.connect(test)
 
             grid.addWidget(lbl, row, 0)
             grid.addWidget(txt, row, 1)
-            grid.addWidget(btn, row, 2)
+            grid.addWidget(btn_browse, row, 2)
+            grid.addWidget(btn_test, row, 3)
+            grid.addWidget(lbl_status, row + 1, 1, 1, 3)
 
-            return txt
+            return txt, lbl_status
 
-        def add_dir(row, label, key):
-            lbl = QLabel(_(label))
-            txt = QLineEdit(self.prefs[key])
-            btn = QPushButton(_("Browse…"))
+        self.txt_abc2midi, self.lbl_abc2midi_status = add_path_with_test(
+            0, "abc2midi:", "abc2midi_path", False, test_abc2midi
+        )
 
-            def browse():
-                path = QFileDialog.getExistingDirectory(self, _("Choose a directory"))
-                if path:
-                    txt.setText(path)
+        self.txt_midi2abc, self.lbl_midi2abc_status = add_path_with_test(
+            2, "midi2abc:", "midi2abc_path", False, test_midi2abc
+        )
 
-            btn.clicked.connect(browse)
+        self.txt_abc2svg, self.lbl_abc2svg_status = add_path_with_test(
+            4, "abc2svg scripts:", "abc2svg_scripts_path", True, test_abc2svg_scripts
+        )
 
-            grid.addWidget(lbl, row, 0)
-            grid.addWidget(txt, row, 1)
-            grid.addWidget(btn, row, 2)
+        self.txt_xml2abc, self.lbl_xml2abc_status = add_path_with_test(
+            6, "xml2abc.py:", "xml2abc_path", False, test_xml2abc
+        )
 
-            return txt
-
-        self.txt_abc2midi = add_path(0, "abc2midi:", "abc2midi_path")
-        self.txt_midi2abc = add_path(1, "midi2abc:", "midi2abc_path")
-        self.txt_abc2svg = add_dir(2, "abc2svg scripts:", "abc2svg_scripts_path")
-        self.txt_soundfont = add_path(3, "SoundFont:", "soundfont_path")
-        self.txt_xml2abc = add_path(4, "xml2abc.py:", "xml2abc_path")
-        self.txt_abc2xml = add_path(5, "abc2xml.py:", "abc2xml_path")
+        self.txt_abc2xml, self.lbl_abc2xml_status = add_path_with_test(
+            8, "abc2xml.py:", "abc2xml_path", False, test_abc2xml
+        )
 
         widget.setLayout(grid)
         return widget
@@ -130,58 +146,71 @@ class PreferencesDialog(QDialog):
         grid.addWidget(self.radio_fluidsynth, row, 2)
         row += 1
 
-        # SoundFont path
-        lbl_sf = QLabel(_("SoundFont:"))
-        self.txt_soundfont_audio = QLineEdit(self.prefs["soundfont_path"])
-        btn_sf = QPushButton(_("Browse…"))
+        def add_audio_path_with_test(row, label, key, is_lib, test_func):
+            lbl = QLabel(label)
+            txt = QLineEdit(self.prefs[key])
 
-        def browse_sf():
-            path, _filter = QFileDialog.getOpenFileName(self, _("Choose a SoundFont"), "", "SoundFont (*.sf2 *.sf3)")
-            if path:
-                self.txt_soundfont_audio.setText(path)
+            btn_browse = QPushButton(_("Browse…"))
+            btn_test = QPushButton(_("Search/Test"))
+            lbl_status = QLabel("")
 
-        btn_sf.clicked.connect(browse_sf)
+            def browse():
+                if is_lib:
+                    path = QFileDialog.getExistingDirectory(self, _("Choose path to fluidynth library"))
+                else:
+                    path, _filter = QFileDialog.getOpenFileName(self, _("Choose a SoundFont"), "", "SoundFont (*.sf2 *.sf3)")
+                if path:
+                    txt.setText(path)
+                    test()
 
-        grid.addWidget(lbl_sf, row, 0)
-        grid.addWidget(self.txt_soundfont_audio, row, 1)
-        grid.addWidget(btn_sf, row, 2)
-        row += 1
+            def test():
+                test_func(txt, lbl_status)
 
-        # FluidSynth library path
-        lbl_lib = QLabel(_("FluidSynth library:"))
-        self.txt_fslib = QLineEdit(self.prefs["fluidsynth_library_path"])
+            btn_browse.clicked.connect(browse)
+            btn_test.clicked.connect(test)
 
-        btn_lib_browse = QPushButton(_("Browse…"))
-        btn_lib_search = QPushButton(_("Search/Test"))
+            grid.addWidget(lbl, row, 0)
+            grid.addWidget(txt, row, 1)
+            grid.addWidget(btn_browse, row, 2)
+            grid.addWidget(btn_test, row, 3)
+            grid.addWidget(lbl_status, row + 1, 1, 1, 3)
 
-        def browse_lib():
-            path, _filter = QFileDialog.getOpenFileName(self, _("Choose FluidSynth library"))
-            if path:
-                self.txt_fslib.setText(path)
+            return txt, lbl_status
 
-        btn_lib_browse.clicked.connect(browse_lib)
+        def search_soundfont(txt, lbl_status):
+            current = txt.text().strip()
+            sf = find_soundfont(current)
+            if sf:
+                txt.setText(sf)
+            ok, msg = test_soundfont(txt.text().strip(),self.txt_fslib.text().strip())
+            lbl_status.setText(msg)
 
-        def search_lib():
-            current = self.txt_fslib.text().strip()
+        def search_lib(txt, lbl_status):
+            current = txt.text().strip()
             lib = find_fluidsynth_library(current)
             if lib:
-                self.txt_fslib.setText(lib)
-                self._update_fslib_status()
-            else:
-                self.lbl_fslib_status.setText(_("No library found. For instance, on Debian you might find it in /usr/lib/x86_64-linux-gnu/libfluidsynth.so.3"))
+                txt.setText(lib)
+            ok, msg = test_fluidsynth_library(txt.text().strip())
+            lbl_status.setText(msg)
 
-        btn_lib_search.clicked.connect(search_lib)
+        self.txt_fslib, self.lbl_fslib_status = add_audio_path_with_test(
+            row,
+            _("FluidSynth library:"),
+            "fluidsynth_library_path",
+            True,
+            search_lib
+            #test_fluidsynth_library
+        )
+        
+        row += 2
 
-        grid.addWidget(lbl_lib, row, 0)
-        grid.addWidget(self.txt_fslib, row, 1)
-        grid.addWidget(btn_lib_browse, row, 2)
-        grid.addWidget(btn_lib_search, row, 3)
-        row += 1
-
-        # Library status
-        self.lbl_fslib_status = QLabel("")
-        grid.addWidget(self.lbl_fslib_status, row, 1, 1, 3)
-        row += 1
+        self.txt_soundfont_audio, self.lbl_soundfont_status = add_audio_path_with_test(
+            row,
+            _("SoundFont:"),
+            "soundfont_path",
+            False,
+            search_soundfont
+        )
 
         # UI activation logic
         self.radio_mplay.toggled.connect(self._update_audio_ui)
@@ -195,32 +224,12 @@ class PreferencesDialog(QDialog):
         use_fs = self.radio_fluidsynth.isChecked()
         self.txt_soundfont_audio.setEnabled(use_fs)
         self.txt_fslib.setEnabled(use_fs)
-        self._update_fslib_status()
 
-    def _update_fslib_status(self):
-        path = self.txt_fslib.text().strip()
-        if not path:
-            self.lbl_fslib_status.setText(_("No library configured"))
-            return
-        if not os.path.exists(path):
-            self.lbl_fslib_status.setText(_("Invalid path.  For instance, on Debian you might find it in /usr/lib/x86_64-linux-gnu/libfluidsynth.so.3"))
-            return
+        ok, msg = test_fluidsynth_library(self.txt_fslib.text().strip())
+        self.lbl_fslib_status.setText(msg)
 
-        try:
-            F = load_fluidsynth_from_path(path)
-            from ctypes import c_int, byref
-            x, y, z = c_int(), c_int(), c_int()
-            try:
-                F.fluid_version(byref(x), byref(y), byref(z))
-                version = f"{x.value}.{y.value}.{z.value}"
-            except:
-                version = None
-            if version:
-                self.lbl_fslib_status.setText(_("OK — FluidSynth version: ") + version)
-            else:
-                self.lbl_fslib_status.setText(_("Library loaded, but version unknown"))
-        except Exception as e:
-            self.lbl_fslib_status.setText(_("Found library but cannot load: ") + str(e))
+        ok, msg = test_soundfont(self.txt_soundfont_audio.text().strip(),self.txt_fslib.text().strip())
+        self.lbl_soundfont_status.setText(msg)
 
     # ------------------------------------------------------------
     # Tab: Follow Notes
@@ -421,7 +430,6 @@ w: Ceci est un aperçu du thème
         self.prefs["abc2midi_path"] = self.txt_abc2midi.text()
         self.prefs["midi2abc_path"] = self.txt_midi2abc.text()
         self.prefs["abc2svg_scripts_path"] = self.txt_abc2svg.text()
-        self.prefs["soundfont_path"] = self.txt_soundfont.text()
         self.prefs["xml2abc_path"] = self.txt_xml2abc.text()
         self.prefs["abc2xml_path"] = self.txt_abc2xml.text()
 
@@ -434,3 +442,35 @@ w: Ceci est un aperçu du thème
         self.prefs["midi_engine"] = "fluidsynth" if self.radio_fluidsynth.isChecked() else "mplay"
         self.prefs["soundfont_path"] = self.txt_soundfont_audio.text()
         self.prefs["fluidsynth_library_path"] = self.txt_fslib.text()
+
+    def _run_initial_tests(self):
+        # Paths tab
+        if self.prefs["abc2midi_path"]:
+            ok, msg = test_abc2midi(self.prefs["abc2midi_path"])
+            self.lbl_abc2midi_status.setText(msg)
+
+        if self.prefs["midi2abc_path"]:
+            ok, msg = test_midi2abc(self.prefs["midi2abc_path"])
+            self.lbl_midi2abc_status.setText(msg)
+
+        if self.prefs["abc2svg_scripts_path"]:
+            ok, msg = test_abc2svg_scripts(self.prefs["abc2svg_scripts_path"])
+            self.lbl_abc2svg_status.setText(msg)
+
+        if self.prefs["xml2abc_path"]:
+            ok, msg = test_xml2abc(self.prefs["xml2abc_path"])
+            self.lbl_xml2abc_status.setText(msg)
+
+        if self.prefs["abc2xml_path"]:
+            ok, msg = test_abc2xml(self.prefs["abc2xml_path"])
+            self.lbl_abc2xml_status.setText(msg)
+
+        # Audio tab (only if FluidSynth is selected)
+        if self.prefs["midi_engine"] == "fluidsynth":
+            if self.prefs["fluidsynth_library_path"]:
+                ok, msg = test_fluidsynth_library(self.prefs["fluidsynth_library_path"])
+                self.lbl_fslib_status.setText(msg)
+
+                if self.prefs["soundfont_path"]:
+                    ok, msg = test_soundfont(self.prefs["soundfont_path"],self.prefs["fluidsynth_library_path"])
+                    self.lbl_soundfont_status.setText(msg)

@@ -76,6 +76,9 @@ Once started, open the Preferences dialog to configure
 * the fluidsynth library (use the Search/Test button to verify the installation)
 * the soundfont path
 
+You can use the test button to verify whether the path are right or not.
+The indication is provided just underneath.
+
 ---
 
 ## Packaging
