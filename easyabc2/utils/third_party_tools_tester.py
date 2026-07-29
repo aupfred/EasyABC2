@@ -1,6 +1,8 @@
 # easyabc2/utils/third_party_tools_tester.py
 
 import os
+import re
+
 from easyabc2.utils.easyabc_utils import run_process
 from easyabc2.engines.midi.fluidsynthplayer import load_fluidsynth_from_path
 from easyabc2 import _
@@ -39,6 +41,10 @@ def test_abc2svg_scripts(path):
     for r in required:
         if not os.path.exists(os.path.join(path, r)):
             return False, _("Missing script: ") + r
+
+    version = _extract_abc2svg_version(path)
+    if version:
+        return True, _("abc2svg scripts OK — version: ") + version
 
     return True, _("abc2svg scripts OK")
 
@@ -114,3 +120,24 @@ def test_soundfont(path, fluidsynth_lib):
 def _short(msg, limit=30):
     msg = msg.strip().replace("\n", " ")
     return msg if len(msg) <= limit else msg[:limit] + "…"
+
+def _extract_abc2svg_version(path):
+    jsfile = os.path.join(path, "abc2svg-1.js")
+    if not os.path.exists(jsfile):
+        return None
+
+    try:
+        text = open(jsfile, "r", encoding="utf-8").read()
+
+        ver = re.search(r'abc2svg\.version\s*=\s*"([^"]+)"', text)
+        date = re.search(r'abc2svg\.vdate\s*=\s*"([^"]+)"', text)
+
+        if ver:
+            version = ver.group(1)
+            if date:
+                return f"{version} ({date.group(1)})"
+            return version
+    except Exception:
+        return None
+
+    return None
