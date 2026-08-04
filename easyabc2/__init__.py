@@ -25,9 +25,9 @@ gettext.textdomain(DOMAIN)
 
 lang = gettext.translation(DOMAIN, LOCALE_DIR, fallback=True)
 
-print("Gettext LOCALE_DIR =", LOCALE_DIR)
-print("Gettext DOMAIN =", DOMAIN)
-print("Available languages =", gettext.find(DOMAIN, LOCALE_DIR))
+#print("Gettext LOCALE_DIR =", LOCALE_DIR)
+#print("Gettext DOMAIN =", DOMAIN)
+#print("Available languages =", gettext.find(DOMAIN, LOCALE_DIR))
 
 # Public translation function
 #_ = gettext.gettext

@@ -31,7 +31,6 @@ def init_quickjs_locale():
 
 class EasyABCApp(QApplication):
     def __init__(self, argv):
-        print("Initialising EasyABCApp")
         super().__init__(argv)
         self.app = self
 
@@ -56,8 +55,6 @@ class EasyABCApp(QApplication):
 
         self.search_dialog = SearchDialog()
         self.search_dialog.search_requested.connect(self.on_search)
-        #self.search_dialog.next_requested.connect(self.search_controller.find_next)
-        #self.search_dialog.previous_requested.connect(self.search_controller.find_previous)
         self.search_dialog.replace_requested.connect(self._on_replace_requested)
         self.search_dialog.replace_all_requested.connect(self._on_replace_all_requested)
         self.search_dialog.replace_all_in_folder_requested.connect(self._on_replace_all_in_folder_requested)
