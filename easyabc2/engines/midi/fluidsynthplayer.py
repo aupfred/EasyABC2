@@ -307,15 +307,22 @@ class FluidSynthPlayer(MidiPlayer):
             self.pause_time = self.p.stop()
 
     def stop(self):
+        logger.debug(f"[FluidSynthPlayer] Stop requested while player is {self.is_playing}")
+        logger.debug(f"[FluidSynthPlayer] FluidSynth Status is {self.p.get_status()}")
+        logger.debug(f"[FluidSynthPlayer] FluidSynth Pause Status is {self.is_paused}")
         if self.is_playing:
             self.p.stop()
         self.pause_time = 0
 
     def seek(self, time):         # go to time (in midi ticks)
         if time > self.duration_in_ticks or time < 0:
+            logger.error(f"[FluidSynthPlayer] time is not valid: 0 < {time} < {self.duration_in_ticks}")
             return
         ticks = self.p.seek(time)
-        self.pause_time = time
+        if self.is_paused:
+            self.pause_time = time
+        else:
+            self.pause_time = 0
         return ticks
 
     def tell(self):

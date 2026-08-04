@@ -70,6 +70,7 @@ class DocumentTab(QWidget):
         self.tempo_factor = 1.0
         self.playback_state = {}  # key = tune.index
         self.last_played_tick = 0
+        self.play_just_started = False
 
         self.resources_path = Path(__file__).resolve().parent.parent / "resources"
         # Widgets
@@ -405,11 +406,10 @@ class DocumentTab(QWidget):
             self.engines.midi_player.load(self.temp_dir / "current.mid")
             self.engines.midi_player.set_title(self.audio_tune.title)
             self.engines.midi_player.play()
-            if self.play_start_enabled:
-                self.engines.midi_player.seek(self.play_start_tick)
+            self.play_just_started = True
             self.play_timer.start(20)
-            return self.engines.midi_player.length()
-        return 100
+            return
+        return
 
     def stop(self):
         if self.engines.midi_player:
@@ -435,11 +435,31 @@ class DocumentTab(QWidget):
     # Playback internal API
     # ------------------------------------------------------------
     def _on_play_tick(self):
-        #logger.debug("[DocumentTab] On Play tick")
-        # 1. Let player continue to play MIDI if not independant (e.g. MPlay)
+        # Effective play started after some delay
+        if self.play_just_started:
+            title = self.audio_tune.title
+            logger.debug(f"[DocumentTab] Play {title}")
+            play_start_enabled = self.play_start_enabled
+            play_start_tick = self.play_start_tick
+            logger.debug(f"[DocumentTab] Play start_enabled {play_start_enabled} at ticks {play_start_tick}")
+            length = self.engines.midi_player.length()
+            logger.debug(f"[DocumentTab] Tune length {length}")
+            # Need to make sure that midi file is properly loaded
+            if length == 0:
+                self.play_timer.start(20)
+                return
+            self.play_just_started = False
+            if self.play_start_enabled:
+                play_start_tick = self.play_start_tick
+                logger.debug(f"[DocumentTab] Play; go to selected tick {play_start_tick}")
+                self.engines.midi_player.seek(self.play_start_tick)
+            self.play_timer.start(20)
+            return
+
+        # Let player continue to play MIDI if not independant (e.g. MPlay)
         self.engines.midi_player.idle()
 
-        # 2. Get current position
+        # Get current position
         tick = self.engines.midi_player.tell()
         length = self.engines.midi_player.length()
         
@@ -454,16 +474,15 @@ class DocumentTab(QWidget):
                 self.stop()
                 return
 
-        # 3. Request to highlight note if tune that is playing is also the one displayed
-        #if tick != self.last_played_tick:
+        # Request to highlight note if tune that is playing is also the one displayed
         is_visual = (self.audio_tune == self.current_tune)
         self.follow_engine.on_tick(tick, is_visual)
 
-        # 4. Request position slider to update
+        # Request position slider to update
         if tick != self.last_played_tick:
             self.last_played_tick = tick
             self.playPositionChanged.emit(tick, length)
-        # 5. Relaunch timer or force stop
+        # Relaunch timer or force stop
         if self.engines.midi_player.is_playing or self.engines.midi_player.is_paused:
             self.play_timer.start(20)
         else:

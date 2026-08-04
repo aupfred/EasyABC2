@@ -30,20 +30,18 @@ def bs (reeks):
 class Synth:            # interface for the FluidSynth synthesizer
     def __init__(self, F, gain=0.2, samplerate=44100, bsize=64):
         self.F = F
-        print("FS: Synth.new_fluid_settings()…")
-        #st = getFnObj ('new_fluid_settings')
+        logger.debug("FS: Synth.new_fluid_settings()…")
         st = self.F.new_fluid_settings()
-        print("FS: Synth.new_fluid_settings_setnum1()…")
+        logger.debug("FS: Synth.new_fluid_settings_setnum1()…")
         self.F.fluid_settings_setnum (st, b"synth.gain", c_double (gain))
-        print("FS: Synth.new_fluid_settings_setnum2()…")
+        logger.debug("FS: Synth.new_fluid_settings_setnum2()…")
         self.F.fluid_settings_setnum (st, b"synth.sample-rate", c_double (samplerate))
-        print("FS: Synth.new_fluid_settings_setint1()…")
+        logger.debug("FS: Synth.new_fluid_settings_setint1()…")
         self.F.fluid_settings_setint (st, b"audio.period-size", bsize)
-        print("FS: Synth.new_fluid_settings_setint2()…")
+        logger.debug("FS: Synth.new_fluid_settings_setint2()…")
         self.F.fluid_settings_setint (st, b"audio.periods", 2)
         self.settings = st
-        #self.synth = getFnObj ('new_fluid_synth', st)
-        print("FS: Synth.new_fluid_synth()…")
+        logger.debug("FS: Synth.new_fluid_synth()…")
         self.synth = self.F.new_fluid_synth(st)
         self.audio_driver = None
 
@@ -51,7 +49,6 @@ class Synth:            # interface for the FluidSynth synthesizer
         if driver is not None:
             assert (driver in ['alsa', 'oss', 'jack', 'portaudio', 'sndmgr', 'coreaudio', 'dsound', 'pulseaudio']) 
             self.F.fluid_settings_setstr (self.settings, b"audio.driver", driver.encode())
-        #self.audio_driver = getFnObj ('new_fluid_audio_driver', self.settings, self.synth)
         self.audio_driver = self.F.new_fluid_audio_driver(self.settings, self.synth)
         if not self.audio_driver:   # API returns 0 on error (not None)
             self.audio_driver = None
@@ -117,10 +114,12 @@ class Player:               # interface for the FluidSynth internal midi player
         self.F.fluid_player_add (self.player, bs (midifile))
 
     def play (self, offset=0): # start playing at time == offset in midi ticks
+        logger.debug(f"[FluidSynth] Play requested at {offset}")
         ticks = self.seek (offset);
         self.F.fluid_player_play (self.player)
 
     def stop (self):           # stop playing and return position in midi ticks
+        logger.debug("[FluidSynth] Stop requested")
         self.F.fluid_player_stop (self.player)
         self.F.fluid_synth_all_notes_off (self.flsynth.synth, -1)   # -1 == all channels
         return self.get_ticks ()

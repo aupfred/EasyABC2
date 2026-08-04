@@ -115,6 +115,7 @@ class MPlaySMFPlayer(MidiPlayer):
             return
 
         if time < 0 or time > self.length():
+            logger.error(f"[MPlay] Seek time is not valid: 0 < {time} < {self.duration_in_ticks}")
             return
 
         self.midi_file.setsong(goto=time)
