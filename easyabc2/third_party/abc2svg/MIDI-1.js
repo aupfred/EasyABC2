@@ -2,7 +2,7 @@
 // @source: https://chiselapp.com/user/moinejf/repository/abc2svg
 // Copyright (C) 2014-2025 Jean-François Moine - LGPL3+
 // MIDI.js - module to handle the %%MIDI parameters
-//MIDI.js-module to handle the%%MIDI parameters
+
 if(typeof abc2svg=="undefined")
 var abc2svg={}
 abc2svg.MIDI={do_midi:function(parm){function tb40(qs){var i,n1=[2,25,8,31,14,37,20,3,26,9,32,15,38,21,4,27,10,33,16,39],n2=[0,19,36,13,30,7,24,1,18,35,12,29,6,23,0,17],da=21-3*qs,b=new Float32Array(40)
@@ -37,7 +37,6 @@ cfmt.chord.vol=v
 break
 case"drum":case"drumon":case"drumoff":case"drumbars":if(!curvoice){abc.syntax(1,"$1 must be in a voice","%%MIDI "+a[1])
 break}
-cfmt.drum=1
 s=abc.new_block("mididrum")
 s.play=s.invis=1
 switch(a[1].slice(4)){case"on":s.on=1
@@ -55,16 +54,33 @@ v=null
 if(v){n=s.txt[0].match(/d/g).length
 v=s.txt.slice(1).join(' ')
 v=v.match(/[^dz\s][0-9]+/g)
-if(v&&(v.length==n||v.length==2*n))
+if(!v||(v.length!=n&&v.length!=2*n))
+v=null}
+if(!v){q=1
 break}
-q=1
+s.seq=[]
+var i=0,j=3
+while(1){v=a[2][i++]
+if(!v)
+break
+if(v=='z')
+s.seq.push(null)
+else if(v>='2'&&v<'9')
+while(--v>0)
+s.seq.push(null)
+else
+s.seq.push([a[j++]])}
 break}
 if(q){abc.syntax(1,abc.errs.bad_val,"%%MIDI "+a[1])
 curvoice.last_sym=s.prev
 if(s.prev)
 s.prev.next=null}
+if(!cfmt.drum)
+cfmt.drum={}
 break
-case"gchord":case"gchordbars":case"gchordon":case"gchordoff":if(!cfmt.chord)
+case"gchord":case"gchordbars":case"gchordon":case"gchordoff":if(a[1].length==6&&!/^[0-9bcf-kG-Kz+]+$/.test(a[2])){abc.syntax(1,abc.errs.bad_val,"%%MIDI gchord")
+break}
+if(!cfmt.chord)
 cfmt.chord={}
 if(parse.state>=2&&curvoice){s=abc.new_block("midigch")
 s.play=s.invis=1

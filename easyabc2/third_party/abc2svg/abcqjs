@@ -11,7 +11,7 @@ if [ -L $p ]; then
 fi
 p=`dirname $p`
 
-exec ./qjs --std -e '
+exec qjs --std -e '
 
     var	i,
 	args = scriptArgs,

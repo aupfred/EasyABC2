@@ -1,6 +1,6 @@
 // abc2svg - ABC to SVG translator
 // @source: https://chiselapp.com/user/moinejf/repository/abc2svg
-// Copyright (C) 2014-2025 Jean-François Moine - LGPL3+
+// Copyright (C) 2014-2026 Jean-François Moine - LGPL3+
 // snd-1.js - file to include in html pages with abc2svg-1.js for playing
 // sndgen.js - sound generation
 // sndaud.js - audio output using HTML5 audio
@@ -79,10 +79,15 @@ return(s.a_meter[1]&&s.a_meter[1].top=='|')?C.BLEN/2:C.BLEN/4
 if(s.a_meter[0].bot=="8"&&s.a_meter[0].top%3==0)
 return C.BLEN/8*3
 return C.BLEN/s.a_meter[0].bot|0}
-function def_beats(){var i,s2,s3,tim,beat=get_beat(),d=first.p_v.meter.wmeasure,nb=d/beat|0,v=voice_tb.length,p_v={id:"_beats",v:v,sym:{type:C.BLOCK,v:v,subtype:"midiprog",chn:9,instr:16384,ts_prev:first}},s={type:C.NOTE,v:v,p_v:p_v,dur:beat,nhd:0,notes:[{midi:37}]}
-abc_time=-d
-for(s2=first;s2;s2=s2.ts_next){if(s2.bar_type&&s2.time){nb=(2*d-s2.time)/beat|0
-abc_time-=d-s2.time
+function def_beats(){var i,s2,s3,tim,nb,npv=cfmt.playbeats.split(/\s+/),beat=get_beat(),d=first.p_v.meter.wmeasure,v=voice_tb.length,p_v={id:"_beats",v:v,sym:{type:C.BLOCK,v:v,subtype:"midiprog",chn:9,instr:16384,ts_prev:first}},s={type:C.NOTE,v:v,p_v:p_v,dur:beat,nhd:0,notes:[{midi:37}]}
+i=Number(npv[0])
+if(!isNaN(i))
+d*=i
+i=Number(npv[1])
+if(!isNaN(i))
+s.notes[0].midi=i
+for(s2=first;s2;s2=s2.ts_next){if(s2.bar_type&&s2.time){nb=(d+first.p_v.meter.wmeasure-s2.time)/beat|0
+abc_time=-beat*nb
 break}}
 s2=p_v.sym
 for(s3=first;s3&&!s3.time;s3=s3.ts_next){if(s3.type==C.TEMPO){s3=Object.create(s3)
@@ -132,11 +137,9 @@ while(--n>0)
 r+=v}
 s.parts=r
 s.p_s=[]
-while(1){if(!s.ts_next){while(!s.seqst)
-s=s.ts_prev
-s.part1=first
-break}
-s=s.ts_next
+while(1){s=s.ts_next
+if(!s)
+break
 if(s.part){s.part1=first
 v=s.part.text[0]
 for(i=0;i<first.parts.length;i++){if(first.parts[i]==v)
@@ -147,15 +150,16 @@ if(s.dur)
 s.dur-=dt
 s.seqst=1
 if(dt<0){s2=s
-do{s=s.prev}while(s&&!s.dur)
-if(s){s.dur+=dt
-s.pdur=s.dur/play_fac
-if(s.ts_next==s2){s2=null}else{s=s2.ts_prev
-while(s&&s.time>=s2.time)
-s=s.ts_prev}}}else{s2=s.ts_next
+do{s2=s2.prev}while(s2&&!s2.dur)
+if(s2){s2.dur+=dt
+s2.pdur=s2.dur/play_fac
+while(s2&&s2.time>=s.time)
+s2=s2.prev
+if(s2)
+s2=s2.next}}else{s2=s.ts_next
 while(s2&&s2.time<s.time)
 s2=s2.ts_next}
-if(s2){s.ts_prev.ts_next=s.ts_next
+if(s2&&s2!=s&&s2!=s.ts_next){s.ts_prev.ts_next=s.ts_next
 if(s.ts_next)
 s.ts_next.ts_prev=s.ts_prev
 s.ts_prev=s2.ts_prev
@@ -178,6 +182,8 @@ prev=prev.prev
 if(prev&&(s.sappo||!next||next.type!=C.NOTE)){if(s.sappo){d=C.BLEN/16
 if(d>prev.dur/3)
 d=prev.dur/3}else{d=prev.dur/2}
+if(s.fmt.gracedur!=null)
+d*=s.fmt.gracedur
 s2=s.ts_next
 relink(s,-d)
 s.ptim-=d/play_fac}else{d=next.dur/12
@@ -191,8 +197,12 @@ if(d/n<24)
 d=24*n
 if(s.sappo&&d>C.BLEN/16)
 d=C.BLEN/16
+if(s.fmt.gracedur!=null)
+d*=s.fmt.gracedur
 relink(next,d)
 s2=s.ts_next}
+s.dur=d
+s.pdur=d/play_fac
 d/=n*play_fac
 t=0
 for(g=s.extra;g;g=g.next){g.dtim=t
@@ -235,7 +245,7 @@ abc2svg.swing.swing(first,voice_tb,cfmt)
 if(cfmt.chord)
 abc2svg.genchrd(first,voice_tb,cfmt)
 if(cfmt.drum)
-abc2svg.drum(s,voice_tb,cfmt)
+abc2svg.gendrum(s,voice_tb,cfmt)
 s_m=first.p_v.meter
 if(cfmt.playbeats&&first.p_v.meter.wmeasure!=1)
 def_beats()
@@ -264,10 +274,13 @@ b_typ|=2
 s.rep_p=rst
 if(rst==rsk[0])
 s.rep_v=rsk
+if(!s.text)
 rst=s}
 if(s.text){if(s.text[0]=='1'){if(b_typ&1)
 break
 b_typ|=1
+if(s.bar_type.slice(-1)==':')
+rst=s
 s.rep_s=rsk=[rst]
 if(rst.bar_type&&rst.bar_type.slice(-1)!=':')
 rst.bar_type+=':'
@@ -349,37 +362,25 @@ po.conf.speed=po.conf.new_speed
 po.conf.new_speed=0}
 maxt=t+po.tgen
 po.timouts=[]
-while(1){switch(s.type){case C.BAR:s2=null
-if(s.rep_p){po.repv++
-if(!po.repn&&(!s.rep_v||po.repv<=s.rep_v.length)){s2=s.rep_p
-po.repn=true}else{if(s.rep_v)
-s2=var_end(s)
-po.repn=false
-if(s.bar_type.slice(-1)==':')
-po.repv=1}}
-if(s.rep_s){s2=s.rep_s[po.repv]
-if(s2){po.repn=false
-if(s2==s)
-s2=null}else{s2=var_end(s)
-if(s2==po.s_end)
-break}}
-if(s.bar_type.slice(-1)==':'&&s.bar_type[0]!=':')
-po.repv=1
-if(s2){po.stim+=(s.ptim-s2.ptim)/po.conf.speed
-s=s2
-while(s&&!s.dur)
-s=s.ts_next
-if(!s)
-break
+s2=null
+while(1){if((!s||s.part1)&&po.i_p!=undefined){s2=po.ps[++po.i_p]
+if(!s2)
+s=s2=null}
+if(s2){s=s2
+s2=null
+po.stim=t-s.ptim/po.conf.speed
 t=po.stim+s.ptim/po.conf.speed
-break}
-if(!s.part1){while(s.ts_next&&!s.ts_next.seqst){s=s.ts_next
-if(s.part1)
-break}
-if(!s.part1)
-break}}
-if(s&&s!=po.s_end&&!s.noplay){switch(s.type){case C.BAR:break
-case C.BLOCK:if(s.subtype=="midictl"){po.midi_ctrl(po,s,t)}else if(s.subtype=='midiprog'){po.v_c[s.v]=s.chn
+while(s&&!s.dur)
+s=s.ts_next}
+if(!s||s==po.s_end||po.stop){if(po.onend)
+setTimeout(po.onend,(t-now+d)*1000,po.repv)
+po.s_cur=s
+return}
+if(s.noplay){s=s.ts_next
+continue}
+if(t>maxt)
+break
+switch(s.type){case C.BLOCK:if(s.subtype=="midictl"){po.midi_ctrl(po,s,t)}else if(s.subtype=='midiprog'){po.v_c[s.v]=s.chn
 if(s.instr!=undefined)
 po.c_i[po.v_c[s.v]]=s.instr
 po.midi_prog(po,s)
@@ -407,34 +408,44 @@ po.timouts.push(setTimeout(po.onnote,st,i,true))
 if(d>2)
 d-=.1
 setTimeout(po.onnote,st+d*1000,i,false)}
-break}}
-while(1){if(!s||s==po.s_end||!s.ts_next||s.ts_next==po.s_end||po.stop){if(po.onend)
-setTimeout(po.onend,(t-now+d)*1000,po.repv)
-po.s_cur=s
-return}
-s=s.ts_next
-if(s.part1&&po.i_p!=undefined){s2=s.part1.p_s[++po.i_p]
-if(!s2){s=null
+break}
+if(!s.bar_type){if(s.ts_next){s=s.ts_next
+if(s.ptim!=s.ts_prev.ptim)
+t=po.stim+s.ptim/po.conf.speed}else{if(s.p_dur)
+t+=s.pdur/po.conf.speed
+s=null}
 continue}
-po.stim+=(s.ptim-s2.ptim)/po.conf.speed
-s=s2
-t=po.stim+s.ptim/po.conf.speed
+if(s.rep_p){if(s.rep_p!=po.repp){po.repv=1
+po.repp=s.rep_p}
+if(s.rep_v){n=s.rep_v.length}else{n=s.bar_type.match(/(:+)[|[\]]/)
+n=(n?n[1].length:1)+2}
+if(++po.repv<n){po.repn=true
+s2=s.rep_p
+continue}
+po.repn=false
 po.repv=1}
-if(!s.noplay)
-break}
-t=po.stim+s.ptim/po.conf.speed
-if(t>maxt)
-break}
+if(s.rep_s){s2=s.rep_s[po.repv]
+if(s2){if(s2.rep_p&&s2.rep_p!=po.repp){po.repv=1
+po.repp=s2.rep_p
+s2=s.rep_s[po.repv]}
+po.repn=false
+if(s2!=s)
+continue
+s2=null}else{s2=var_end(s)
+continue}}
+do{s=s.ts_next}while(s&&!s.seqst)}
 po.s_cur=s
 po.timouts.push(setTimeout(play_cont,(t-now)*1000
 -300,po))}
 function get_part(po){var s,i,s_p
 for(s=po.s_cur;s;s=s.ts_prev){if(s.parts){po.i_p=-1
+po.ps=s.p_s
 return}
 s_p=s.part1
 if(!s_p||!s_p.p_s)
 continue
-for(i=0;i<s_p.p_s.length;i++){if(s_p.p_s[i]==s){po.i_p=i
+for(i=0;i<s_p.p_s.length;i++){if(s_p.p_s[i]==s){po.i_p=i-1
+po.ps=s_p.p_s
 return}}}}
 if(po.stop){if(po.onend)
 po.onend(po.repv)
@@ -939,7 +950,7 @@ abc2svg.chord={alias:{c:"135789",b:"*1,135789",f:"*1,",g:"1'",h:"3'",i:"5'",j:"7
 127 gunshot
 `,set_kit:function(abc,cmd,parm){if(!parm)
 return
-var k,s,v,cfmt=abc.cfmt(),curv=abc.get_curvoice(),parse=abc.get_parse(),a=parm.match(/=|[^\s=]+/g),val={}
+var k,s,v,cfmt=abc.cfmt(),curv=abc.get_curvoice(),parse=abc.get_parse(),a=parm.match(/=|"[^"]*"|[^\s"=]+/g),val={}
 function bad(){abc.syntax(1,abc.errs.bad_val,"%%chordkit")}
 function abc2pit(p){var i,c,a,o=[]
 for(i=0;i<p.length;i++){c=p[i]
@@ -954,11 +965,32 @@ if(c<0)
 return
 o.push(c)}
 return o}
-function get_prog(p){p='\\d+ '+p.toLowerCase(p).replace(/(.)/g,'[$1].*')+'\n'
-p=new RegExp(p)
-p=abc2svg.chord.prg_nam.match(p)
-if(p)
-return p[0].split(' ',1)[0]}
+function get_prog(p){var i,j,k,l,nm=abc2svg.chord.prg_nam
+p=p.replace(/[-_]/g,' ').trim().toLowerCase().split(' ')
+i=0
+while(1){j=nm.indexOf(p[i])
+if(j>0&&(nm[j-1]==' '||nm[j-1]=='('))
+break
+if(++i>=p.length)
+return}
+l=nm.lastIndexOf('\n',j)
+if(l<0)
+l=0
+j=l
+if(i<p.length-1)
+while(1){k=nm.indexOf(p[i+1],j+1)
+if(k<0)
+break
+if(nm[k-1]!=' '&&nm[k-1]!='('){j=k
+continue}
+k=nm.lastIndexOf('\n',k)
+j=nm.indexOf(p[i],k)
+if(j<0)
+break
+j=nm.lastIndexOf('\n',j)
+if(j==k){l=j
+break}}
+return parseInt(nm.slice(l,l+3))}
 if(!a)
 return bad()
 while(1){k=a.shift()
@@ -983,8 +1015,9 @@ return bad()
 chnm[k[0]]=v
 continue
 case"alias":return bad()
-case"instr":if(v[0]<'1'||v[0]>'9')
-v=get_prog(v)
+case"instr":if(v[0]<'1'||v[0]>'9'){if(v[0]=='"')
+v=v.slice(1,-1)
+v=get_prog(v)}
 k="prog"
 case"prog":v=+v
 break
@@ -1091,14 +1124,14 @@ while(--n>0)
 rhy.splice(++i,0,'+')}}}
 dt=md/rhy.length*gchnb}
 function gench(sb,i){var r,ch,b,m,n,nt,a=sb.a_gch[i].otext
+if(a[0]=='n'||a[0]=='N'){chmid=[]
+return}
 if(a.slice(-1)==')')
 a=a.replace(/\(.*/,'')
 a=a.replace(/\(|\)|\[|\]/g,'').replace(/♯/g,'#').replace(/♭/g,'b').match(/([A-G])([#b]?)([^/]*)\/?(.*)/)
 if(!a)
 return
 r=abc2svg.letmid[a[1]]
-if(r==undefined)
-return
 switch(a[2]){case"#":r++;break
 case"b":r--;break}
 if(!a[3]){ch=chnm[""]}else{ch=abc2svg.ch_alias[a[3]]
@@ -1210,12 +1243,7 @@ chnm=abc2svg.chnm
 if(cfmt.chord.names){for(k in cfmt.chord.names){chnm[k]=[]
 for(i=0;i<cfmt.chord.names[k].length;i++)
 chnm[k].push(+cfmt.chord.names[k][i])}}
-k=0
-for(i=0;i<voice_tb.length;i++){if(k<voice_tb[i].chn)
-k=voice_tb[i].chn}
-if(k==9)
-k++
-vch={v:voice_tb.length,id:"_chord",time:0,sym:{type:C.BLOCK,subtype:"midiprog",chn:k+1,instr:cfmt.chord.prog||0,time:0,dur:0,next:{type:C.BLOCK,subtype:"midictl",time:0,dur:0,ctrl:7,val:cfmt.chord.vol||75}}}
+vch={v:voice_tb.length,id:"_chord",time:0,sym:{type:C.BLOCK,subtype:"midiprog",chn:15,instr:cfmt.chord.prog||0,time:0,dur:0,next:{type:C.BLOCK,subtype:"midictl",time:0,dur:0,ctrl:7,val:cfmt.chord.vol||75}}}
 vch.sym.p_v=vch
 vch.sym.v=vch.v
 vch.sym.next.p_v=vch
@@ -1246,7 +1274,7 @@ ti=0}}
 if(gchon&&s.a_gch){for(i=0;i<s.a_gch.length;i++){if(s.a_gch[i].type!='g')
 continue
 gench(s,i)
-if(rhy[0]=='+')
+if(rhy[0]=='+'&&chmid.length)
 nextim=s.time
 break}}
 if(!s.dur){if(s.bar_num){if(gchnb==1||!((s.bar_num-1)%gchnb))
@@ -1257,7 +1285,7 @@ bld_rhy(s.rhy)
 if(s.gchnb)
 gchnb=s.gchnb
 if(s.on!=undefined){gchon=s.on
-if(!gchon&&rhy[0]=='+')
+if(!gchon)
 set_dur(vch.last_sym,s.time)}}}
 if(!s.ts_next)
 break
@@ -1270,48 +1298,171 @@ set_dur(vch.last_sym,s.time+(s.dur||0))}}
 if(!abc2svg.mhooks)
 abc2svg.mhooks={}
 abc2svg.mhooks.chord=abc2svg.chord.set_hooks
-abc2svg.drum=function(first,voice_tb,cfmt){var c,i,on,n,nb,ss,v,str,pits,vols,l,dl,i_rst,j_rst,s=first,C=abc2svg.C,vdr={v:voice_tb.length,id:"_drum",time:0,sym:{type:C.BLOCK,subtype:"midiprog",chn:9,time:0,dur:0}},_sdr={v:vdr.v,p_v:vdr,type:C.NOTE,nhd:0}
+abc2svg.perc_nam=`
+35 acoustic bass drum
+36 bass drum 1
+37 side stick
+38 acoustic snare
+39 hand clap
+40 electric snare
+41 low floor tom
+42 closed hi-hat
+43 high floor tom
+44 pedal hi-hat
+45 low tom
+46 open hi-hat
+47 low-mid tom
+48 hi-mid tom
+49 crash cymbal 1
+50 high tom
+51 ride cymbal 1
+52 chinese cymbal
+53 ride bell
+54 tambourine
+55 splash cymbal
+56 cowbell
+57 crash cymbal 2
+58 vibraslap
+59 ride cymbal 2
+60 hi bongo
+61 low bongo
+62 mute hi conga
+63 open hi conga
+64 low conga
+65 high timbale
+66 low timbale
+67 high agogo
+68 low agogo
+69 cabasa
+70 maracas
+71 short whistle
+72 long whistle
+73 short guiro
+74 long guiro
+75 claves
+76 hi wood block
+77 low wood block
+78 mute cuica
+79 open cuica
+80 mute triangle
+81 open triangle
+`
+abc2svg.perc_instr={B:35,BD:35,S:38,SD:38,H:42,HH:42,FT:43,Hf:44,T2:47,T1:50,Rd:51,CC:57,}
+abc2svg.drum={beg_end:function(of,type,opt,txt){if(type!="drum")
+return of(type,opt,txt)
+var l,p,pat,abc=this,cfmt=abc.cfmt()
+function bad(){abc.syntax(1,abc.errs.bad_val,"%%begindrum")}
+function get_perc(p){var i,j,k,l
+p=p.replace(/-/g,' ').trim().toLowerCase().split(' ')
+for(i=0;i<p.length;i++)
+p[i]=' '+p[i]
+i=0
+while(1){j=abc2svg.perc_nam.indexOf(p[i])
+if(j>0)
+break
+if(++i>=p.length)
+return}
+l=abc2svg.perc_nam.lastIndexOf('\n',j)
+if(l<0)
+l=0
+j=l
+if(i<p.length-1)
+while(1){k=abc2svg.perc_nam.indexOf(p[i+1],j+1)
+if(k<0)
+break
+k=abc2svg.perc_nam.lastIndexOf('\n',k)
+j=abc2svg.perc_nam.indexOf(p[i],k)
+if(j<0)
+break
+j=abc2svg.perc_nam.lastIndexOf('\n',j)
+if(j==k){l=j
+break}}
+return parseInt(abc2svg.perc_nam.slice(l,l+3))}
+if(!cfmt.drum)
+cfmt.drum={}
+if(!cfmt.drum.pat)
+cfmt.drum.pat={}
+pat=[]
+txt=txt.trim().split(/\n+/)
+while(1){l=txt.shift()
+if(!l)
+break
+l=/(^[A-Za-z0-9][A-Za-z0-9]?)\s*\|(.+)\|$/g.exec(l.trim())
+if(!l)
+return bad()
+if(/^[-ox|]*$/.test(l[2])){pat.push({instr:l[1],seq:l[2]})}else{if(!cfmt.drum)
+cfmt.drum={}
+if(!cfmt.drum.instr)
+cfmt.drum.instr={}
+cfmt.drum.instr[l[1]]=get_perc(l[2])}}
+cfmt.drum.pat[opt]=pat},set_fmt:function(of,cmd,parm){if(cmd!="drum")
+return of(cmd,parm)
+var i,j,k,n,p,instr,s,abc=this,cfmt=abc.cfmt(),curv=abc.get_curvoice(),parse=abc.get_parse(),pat=(parm&&parm!="0")?cfmt.drum.pat[parm]:null,seq=[]
+function bad(){abc.syntax(1,abc.errs.bad_val,"%%drum")}
+if(!curv)
+return abc.syntax(1,"$1 must be in a voice","%%drum")
+s=abc.new_block("mididrum")
+s.play=s.invis=1
+s.on=!!pat
+if(!pat)
+return
+s.nb=1
+s.seq=seq
+for(i=0;i<pat.length;i++){instr=pat[i].instr
+instr=(cfmt.drum&&cfmt.drum.instr&&cfmt.drum.instr[instr])||abc2svg.perc_instr[instr]
+if(!instr){abc.syntax(1,"Unknown instrument in %%drum "+parm)
+continue}
+p=pat[i].seq
+n=1
+k=0
+for(j=0;j<p.length;j++){switch(p[j]){case'o':case'x':if(!seq[k])
+seq[k]=[]
+seq[k].push(instr)
+default:k++
+break
+case'|':n++
+break}}
+if(n>s.nb)
+s.nb=n
+seq.length=k}},set_hooks:function(abc){abc.do_begin_end=abc2svg.drum.beg_end.bind(abc,abc.do_begin_end)
+abc.set_format=abc2svg.drum.set_fmt.bind(abc,abc.set_format)}}
+abc2svg.gendrum=function(first,voice_tb,cfmt){var c,i,on,n,nb,ss,v,seq,vols,l,dl,i_rst,s=first,C=abc2svg.C,vdr={v:voice_tb.length,id:"_drum",time:0,sym:{type:C.BLOCK,subtype:"midiprog",chn:9,time:0,dur:0}},_sdr={v:vdr.v,p_v:vdr,type:C.NOTE,nhd:0}
 function gendr(ss,s){var c,i,j,sdr,s2,ti=ss.time,te=s.time+(s.dur||0),d=dl*nb/l
 while(!ss.dur)
 ss=ss.next
 while(ti<te){if(ss.bar_type&&(ss.text>='2'&&ss.text<='9')){i=i_rst
-j=j_rst-1
 while(!ss.dur)
-ss=ss.ts_next}else{i=j=0}
-for(;i<str.length;i++){c=str[i]
-if(c=='z'){ti+=d
-c=str[i+1]
-if(c>='2'&&c<='9'){ti+=(+c-1)*d
-i++}
+ss=ss.ts_next}else{i=0}
+for(;i<seq.length;i++){c=seq[i]
+if(!c){ti+=d
 continue}
 sdr=Object.create(_sdr)
 sdr.time=ti
 s2=sdr
 sdr.dur=d
-sdr.notes=[{dur:d,midi:pits[j++]||38}]
-c=str[i+1]
-if(c>='2'&&c<='9'){sdr.dur*=+c
-sdr.notes[0].dur=sdr.dur
-i++}
+sdr.notes=[]
+sdr.nhd=c.length-1
+for(j=0;j<c.length;j++)
+sdr.notes.push({dur:d,midi:seq[i][j]})
 if(s2.next){sdr.next=s2.next
 s2.next=sdr
 sdr.prev=s2
 sdr.next.prev=sdr}else{vdr.last_sym.next=sdr
 sdr.prev=vdr.last_sym
 vdr.last_sym=sdr}
-while(ss.time<ti)
+while(ss.ts_next&&ss.time<ti)
 ss=ss.ts_next
 s=ss
-while(!s.dur&&s.time==ti){if(s.bar_type&&s.text=='1')
-i_rst=i,j_rst=j
+while(s.ts_next&&!s.dur&&s.time==ti){if(s.bar_type&&s.text=='1')
+i_rst=i
 s=s.ts_next}
-while(s.dur&&s.time==ti&&s.v<sdr.v)
+while(s.ts_next&&s.dur&&s.time==ti&&s.v<sdr.v)
 s=s.ts_next
 sdr.ts_next=s
 sdr.ts_prev=s.ts_prev
 s.ts_prev=sdr
 sdr.ts_prev.ts_next=sdr
-ti+=sdr.dur}
+ti+=d}
 ss=s}}
 vdr.sym.p_v=vdr
 vdr.sym.v=vdr.v
@@ -1324,7 +1475,7 @@ vdr.sym.ts_prev.ts_next=s.ts_prev=vdr.sym
 dl=first.p_v.meter.wmeasure
 for(s=first;s&&!s.bar_type;s=s.ts_next){if(s.wmeasure){dl=s.wmeasure
 break}}
-for(v=0;v<voice_tb.length;v++){on=str=null
+for(v=0;v<voice_tb.length;v++){on=seq=null
 nb=1
 for(s=voice_tb[v].sym;s;s=s.next){if(s.subtype!="mididrum"){if(s.wmeasure)
 dl=s.wmeasure
@@ -1333,23 +1484,14 @@ if(s.on!=undefined)
 on=s.on
 if(s.nb)
 nb=s.nb
-if(s.txt){str=s.txt.shift()
-n=0
-for(i=0;i<str.length;i++)
-if(str[i]=='d')
-n++
-pits=s.txt.slice(0,n)
-if(s.txt.length>n)
-vols=s.txt.slice(n)
-n=0
-for(i=0;i<str.length;i++){c=str[i]
-n++
-if(c>='2'&&c<='9')
-n+=+c-2}
-l=n}
-if(on&&str){ss=s
+if(s.seq){seq=s.seq
+l=seq.length}
+if(on&&seq){ss=s
 while(1){if(!s.next||s.next.subtype=="mididrum"||s.next.wmeasure)
 break
 s=s.next}
 gendr(ss,s)}}}
 voice_tb.push(vdr)}
+if(!abc2svg.mhooks)
+abc2svg.mhooks={}
+abc2svg.mhooks.drum=abc2svg.drum.set_hooks

@@ -120,8 +120,7 @@ function abc_dump(tsfirst, voice_tb, info, cfmt) {
 				if (n)
 					ln += instr(n)
 			}
-			if (ln)
-				abc2svg.print('V:' + p_voice.id + ln)
+			abc2svg.print('V:' + p_voice.id + (ln || ''))
 
 			if (p_voice.instr) {
 				for (var s = p_voice.sym; s && s.time == 0; s = s.next) {
@@ -651,19 +650,6 @@ break
 		if (staff.flags & CLOSE_BRACKET)
 			ln += ']';
 
-		// output the following bars
-		for (s = s.ts_next; s; s = s.ts_next) {
-			if (s.type != C.BAR)
-				break
-			if (s.time != vti[s.v])
-				continue
-			sym_dump(s);
-			s.del = true
-			if (line) {
-				vo[s.v] += line
-				line = ""
-			}
-		}
 		voice_out();
 		abc2svg.print(ln)
 		for (v = 0; v < nv; v++)
