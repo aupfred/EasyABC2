@@ -17,14 +17,12 @@ from PySide6.QtGui import QAction, QIcon, QTextCursor
 #from PySide6.QtPrintSupport import QPrinter, QPrintDialog
 
 from easyabc2.utils.easyabc_utils import get_app_data_dir, get_temp_dir, save_temp_abc, save_temp_svg, get_temp_dir_for_tab
-from easyabc2.utils.preferences import UserPreferences
 #from easyabc2.utils.search_controller import SearchController
 from easyabc2.ui.tune_list_widget import TuneListWidget
 from easyabc2.ui.preferences_dialog import PreferencesDialog
 from easyabc2.ui.document_tab import DocumentTab
 from easyabc2.ui.play_range_selector_widget import RangeSelectorWidget
 #from easyabc2.ui.search_dialog import SearchDialog
-from easyabc2.models.abc_document import AbcDocument, TuneInfo
 import easyabc2.resources.icons_rc
 from easyabc2.utils.logging_utils import logger
 from easyabc2 import _
@@ -139,7 +137,7 @@ class MainWindow(QMainWindow):
 
         self.act_quit = QAction(_("Quit"), self)
         self.act_quit.setShortcut("Ctrl+Q")
-        self.act_quit.triggered.connect(self.on_quit)
+        self.act_quit.triggered.connect(QApplication.instance().quit_application)
 
         # --- Edit menu ---
         self.act_undo = QAction(_("Undo"), self)
@@ -959,39 +957,6 @@ class MainWindow(QMainWindow):
         QMessageBox.information(self, _("Print"), _("For now to print save to PDF and then print via PDF viewer"))
         pass
 
-    def on_quit(self):
-        self.close()
-
-    def closeEvent(self, event):
-        for i in range(self.tabs.count()):
-            tab = self.tabs.widget(i)
-            if not self._maybe_save_tab(tab):
-                event.ignore()
-                return
-
-        open_files = []
-        active_file = None
-        current_index = self.tabs.currentIndex()
-        for i in range(self.tabs.count()):
-            tab = self.tabs.widget(i)
-            if tab.current_file:
-                open_files.append(tab.current_file)
-                logger.debug(f"[MainWindow] list {tab.current_file}")
-                if i == current_index :
-                    active_file = tab.current_file
-                    logger.debug(f"[MainWindow] active {active_file}")
-
-        self.prefs["window_geometry"] = self.saveGeometry().toBase64().data().decode()
-        self.prefs["window_state"] = self.saveState().toBase64().data().decode()
-        self.prefs["session_open_files"] = open_files
-        self.prefs["session_active_file"] = active_file
-        self.prefs.save()
-
-        app = QApplication.instance()
-        if self in app.main_windows:
-            app.main_windows.remove(self)
-        event.accept()
-
     def closeEvent(self, event):
 
         audio_tab = None
@@ -1074,8 +1039,9 @@ class MainWindow(QMainWindow):
         self.prefs.save()
 
         # --- 5. Close window ---
-        event.accept()
-        QApplication.instance().main_windows.remove(self)
+        app = QApplication.instance()
+        app.unregister_window(self)
+        super().closeEvent(event)
 
     def save_all_tabs(self):
         for i in range(self.tabs.count()):

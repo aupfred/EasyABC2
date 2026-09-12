@@ -2,7 +2,7 @@
 import sys
 import locale
 
-from PySide6.QtWidgets import QApplication
+from PySide6.QtWidgets import QApplication, QDialog
 
 from easyabc2.utils.easyabc_utils import get_app_data_dir
 from easyabc2.utils.preferences import UserPreferences
@@ -11,6 +11,7 @@ from easyabc2.utils.search_controller import SearchController
 from easyabc2.ui.main_window import MainWindow
 from easyabc2.ui.search_dialog import SearchDialog
 from easyabc2.engines.engines_manager import EngineManager
+from easyabc2.ui.startup_assistant import StartupAssistant
 
 def init_quickjs_locale():
     # macOS: UTF‑8 recommended
@@ -33,6 +34,7 @@ class EasyABCApp(QApplication):
     def __init__(self, argv):
         super().__init__(argv)
         self.app = self
+        self.open_dialogs = []
 
         # App data
         self.app_data_dir = get_app_data_dir("EasyABC2")
@@ -46,6 +48,12 @@ class EasyABCApp(QApplication):
         # Logging
         setup_logging(self.app_data_dir, self.prefs["debug_mode"])
         logger.info("Application started.")
+
+        assistant = StartupAssistant(self.prefs, self)
+        self.startup_result = assistant.run()
+        if self.prefs["midi_engine"] != self.startup_result.midi_backend:
+            self.prefs["midi_engine"] = self.startup_result.midi_backend
+            self.prefs.save()
 
         # Engines
         self.engines = EngineManager(self.prefs)
@@ -92,6 +100,16 @@ class EasyABCApp(QApplication):
         if not self.main_windows:
             self.save_full_session()
 
+    # --- Dialog management ---
+    def register_dialog(self, dlg):
+        logger.debug(f"Register dialog {dlg}")
+        self.open_dialogs.append(dlg)
+
+    def unregister_dialog(self, dlg):
+        if dlg in self.open_dialogs:
+            logger.debug(f"Unregister dialog {dlg}")
+            self.open_dialogs.remove(dlg)
+
     # --- Session management ---
     def register_window_session(self, win, open_files, active_file):
         self.window_sessions[win] = {
@@ -129,7 +147,20 @@ class EasyABCApp(QApplication):
 
     def quit_application(self):
         for win in list(self.main_windows):
+            logger.debug(f"[EasyABCApp] Closing main_window {win}")
             win.close()
+
+        if hasattr(self, "search_dialog") and self.search_dialog is not None:
+            logger.debug(f"[EasyABCApp] Closing main_window {self.search_dialog}")
+            self.search_dialog.close()
+
+        for widget in QApplication.topLevelWidgets():
+            if isinstance(widget, QDialog):
+                logger.debug(f"[EasyABCApp] Closing qdialog {widget}")
+                widget.close()
+
+        logger.debug("[EasyABCApp] Quit")
+        QApplication.quit()
 
     # --- Helpers ---
     def all_mainwindows(self):

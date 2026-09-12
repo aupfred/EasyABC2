@@ -3,8 +3,11 @@
 import os
 import re
 
+from PySide6.QtWidgets import QMessageBox
+
 from easyabc2.utils.easyabc_utils import run_process
 from easyabc2.engines.midi.fluidsynthplayer import load_fluidsynth_from_path
+from easyabc2.utils.logging_utils import logger
 from easyabc2 import _
 
 def test_abc2midi(path):
@@ -16,6 +19,7 @@ def test_abc2midi(path):
     stdout, stderr, code = run_process([path, "-ver"])
     if code == 0:
         version = _short(stdout.strip()) or _("OK")
+        logger.info(f"abc2midi OK — version: {version}")
         return True, _("abc2midi OK — version: ") + version
     return False, _("abc2midi failed: ") + _short(stderr.strip() or _("Unknown error"))
 
@@ -28,6 +32,7 @@ def test_midi2abc(path):
     stdout, stderr, code = run_process([path, "-ver"])
     if code == 0:
         version = _short(stdout.strip()) or _("OK")
+        logger.info(f"midi2abc OK — version: {version}")
         return True, _("midi2abc OK — version: ") + version
     return False, _("midi2abc failed: ") + _short(stderr.strip() or _("Unknown error"))
 
@@ -44,6 +49,7 @@ def test_abc2svg_scripts(path):
 
     version = _extract_abc2svg_version(path)
     if version:
+        logger.info(f"abc2svg scripts OK — version: {version}")
         return True, _("abc2svg scripts OK — version: ") + version
 
     return True, _("abc2svg scripts OK")
@@ -57,6 +63,7 @@ def test_xml2abc(path):
     stdout, stderr, code = run_process(["python3", path, "--version"])
     if code == 0:
         version = _short(stdout.strip()) or _("OK")
+        logger.info(f"xml2abc OK — version: {version}")
         return True, _("xml2abc OK — version: ") + version
 
     return False, _("xml2abc failed: ") + _short(stderr.strip() or _("Unknown error"))
@@ -70,6 +77,7 @@ def test_abc2xml(path):
     stdout, stderr, code = run_process(["python3", path, "--version"])
     if code == 0:
         version = _short(stdout.strip()) or _("OK")
+        logger.info(f"abc2xml OK — version: {version}")
         return True, _("abc2xml OK — version: ") + version
 
     return False, _("abc2xml failed: ") + _short(stderr.strip() or _("Unknown error"))
@@ -87,7 +95,8 @@ def test_fluidsynth_library(path):
         try:
             F.fluid_version(byref(x), byref(y), byref(z))
             version = f"{x.value}.{y.value}.{z.value}"
-            return True, _("OK — FluidSynth version: ") + version
+            logger.info(f"FluidSynth OK — version: {version}")
+            return True, _("FluidSynth OK —  version: ") + version
         except:
             return True, _("Library loaded, but version unknown")
 
@@ -112,6 +121,7 @@ def test_soundfont(path, fluidsynth_lib):
         if sfid < 0:
             return False, _("Cannot load SoundFont")
 
+        logger.info("SoundFont OK")
         return True, _("SoundFont OK")
 
     except Exception as e:
@@ -141,3 +151,56 @@ def _extract_abc2svg_version(path):
         return None
 
     return None
+
+def fluidsynth_service_active():
+    stdout, stderr, rc = run_process(
+        ["systemctl", "--user", "is-active", "fluidsynth.service"]
+    )
+    return stdout.strip() == "active"
+
+def _fluidsynth_service_execstart():
+    stdout, stderr, rc = run_process(
+        ["systemctl", "--user", "cat", "fluidsynth.service"]
+    )
+    if rc != 0:
+        return None
+
+    for line in stdout.splitlines():
+        if line.strip().startswith("ExecStart="):
+            return line.strip()
+    return None
+
+def fluidsynth_service_is_compatible():
+    execstart_line = _fluidsynth_service_execstart()
+    if not execstart_line:
+        return False
+
+    line = execstart_line.lower()
+
+    # Server mode (-s) cannot be used
+    if " -s" in line and "jack" not in line:
+        return False
+
+    # ALSA → continuous noise observed
+    if " -a alsa" in line:
+        return False
+
+    # PulseAudio → OK
+    if " -a pulseaudio" in line:
+        return True
+
+    # PipeWire → OK
+    if " -a pipewire" in line:
+        return True
+
+    # JACK via PipeWire → OK
+    if " -a jack" in line:
+        return False # Should be True, as not tested yet considered False
+
+    return False
+
+def stop_fluidsynth_service():
+    run_process(["systemctl", "--user", "stop", "fluidsynth.service"])
+
+def start_fluidsynth_service():
+    run_process(["systemctl", "--user", "start", "fluidsynth.service"])

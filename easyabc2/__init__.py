@@ -2,9 +2,9 @@
 __version__ = "0.0.1"
 
 import gettext
-import os
+#import os
 from pathlib import Path
-import locale
+#import locale
 #print("locale.getdefaultlocale() =", locale.getdefaultlocale())
 #print("locale.getlocale() =", locale.getlocale())
 #print("os.environ.get('LANG') =", os.environ.get('LANG'))

@@ -1,7 +1,7 @@
 # easyabc2/ui/preferences_dialog.py
 #from gettext import gettext as _
 
-import os
+import sys
 
 from PySide6.QtCore import QTimer
 from PySide6.QtWidgets import (
@@ -12,13 +12,15 @@ from PySide6.QtWidgets import (
 from PySide6.QtGui import QColor
 
 from easyabc2.ui.abc_editor import ABCEditor
-from easyabc2.engines.midi.fluidsynthplayer import find_fluidsynth_library, load_fluidsynth_from_path, find_soundfont
-
+from easyabc2.engines.midi.fluidsynthplayer import find_fluidsynth_library, find_soundfont
 from easyabc2.utils.easyabc_utils import run_process
 from easyabc2.utils.third_party_tools_tester import (
     test_abc2midi, test_midi2abc, test_abc2svg_scripts,
     test_fluidsynth_library, test_soundfont,
-    test_xml2abc, test_abc2xml
+    test_xml2abc, test_abc2xml,
+    fluidsynth_service_active,
+    fluidsynth_service_is_compatible,
+    stop_fluidsynth_service,
 )
 from easyabc2 import _
 
@@ -212,6 +214,41 @@ class PreferencesDialog(QDialog):
             search_soundfont
         )
 
+        # --- FluidSynth daemon control (Linux only) ---
+        if sys.platform.startswith("linux"):
+            row += 2
+
+            lbl_fsdaemon = QLabel(_("FluidSynth daemon (Linux):"))
+            grid.addWidget(lbl_fsdaemon, row, 0)
+            row += 1
+
+            # Checkbox: stop at startup
+            self.cb_stop_fluidsynth = QCheckBox(_("Stop FluidSynth at startup"))
+            self.cb_stop_fluidsynth.setChecked(
+                self.prefs.get("stop_fluidsynth_at_startup", False)
+            )
+            grid.addWidget(self.cb_stop_fluidsynth, row, 1)
+            row += 1
+
+            # Button: stop now
+            self.btn_stop_fluidsynth = QPushButton(_("Stop FluidSynth now"))
+            self.btn_stop_fluidsynth.clicked.connect(self._stop_fluidsynth_now)
+            grid.addWidget(self.btn_stop_fluidsynth, row, 1)
+
+            # Status label
+            self.lbl_fluidsynth_status = QLabel("")
+            grid.addWidget(self.lbl_fluidsynth_status, row, 2)
+            row += 1
+
+            # Warning label (only if incompatible)
+            self.lbl_fluidsynth_warning = QLabel("")
+            self.lbl_fluidsynth_warning.setStyleSheet("color: red;")
+            grid.addWidget(self.lbl_fluidsynth_warning, row, 1, 1, 2)
+            row += 1
+
+            # Initial status
+            self._update_fluidsynth_status()
+
         # UI activation logic
         self.radio_mplay.toggled.connect(self._update_audio_ui)
         self.radio_fluidsynth.toggled.connect(self._update_audio_ui)
@@ -230,6 +267,35 @@ class PreferencesDialog(QDialog):
 
         ok, msg = test_soundfont(self.txt_soundfont_audio.text().strip(),self.txt_fslib.text().strip())
         self.lbl_soundfont_status.setText(msg)
+
+    def _stop_fluidsynth_now(self):
+        stop_fluidsynth_service()
+        self._update_fluidsynth_status()
+
+    def _update_fluidsynth_status(self):
+        active = fluidsynth_service_active()
+
+        if not active:
+            self.lbl_fluidsynth_status.setText(_("FluidSynth is stopped"))
+            self.lbl_fluidsynth_warning.setText("")
+            return
+
+        # Service actif
+        if fluidsynth_service_is_compatible():
+            self.lbl_fluidsynth_status.setText(
+                _("FluidSynth is running (compatible with MPlay)")
+            )
+            self.lbl_fluidsynth_warning.setText(
+                _("You only need to stop the service if you want to use FluidSynth mode.")
+            )
+        else:
+            self.lbl_fluidsynth_status.setText(
+                _("FluidSynth is running (incompatible configuration)")
+            )
+            self.lbl_fluidsynth_warning.setText(
+                _("MPlay and FluidSynth cannot work while this service is active.\n"
+                  "Stop the service or fix its configuration.")
+            )
 
     # ------------------------------------------------------------
     # Tab: Follow Notes
@@ -442,6 +508,9 @@ w: Ceci est un aperçu du thème
         self.prefs["midi_engine"] = "fluidsynth" if self.radio_fluidsynth.isChecked() else "mplay"
         self.prefs["soundfont_path"] = self.txt_soundfont_audio.text()
         self.prefs["fluidsynth_library_path"] = self.txt_fslib.text()
+
+        if sys.platform.startswith("linux"):
+            self.prefs["stop_fluidsynth_at_startup"] = self.cb_stop_fluidsynth.isChecked()
 
     def _run_initial_tests(self):
         # Paths tab

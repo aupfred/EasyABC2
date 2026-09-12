@@ -12,8 +12,8 @@ if sys.platform == "darwin":
     from easyabc2.third_party.mplay.darwinmidi import midiDevice
 elif sys.platform == 'win32':
     from easyabc2.third_party.mplay.win32midi import midiDevice
-else:
-    raise ImportError("MPlaySMFPlayer is only supported on macOS")
+elif sys.platform.startswith("linux"):
+    pass
 
 from easyabc2.utils.logging_utils import logger
 
