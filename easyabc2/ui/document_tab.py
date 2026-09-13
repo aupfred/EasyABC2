@@ -4,15 +4,12 @@ import uuid
 from pathlib import Path
 from dataclasses import dataclass
 
-from PySide6.QtWidgets import QApplication, QWidget, QVBoxLayout, QSplitter
+from PySide6.QtWidgets import QApplication, QWidget, QVBoxLayout, QSplitter, QMessageBox
 from PySide6.QtCore import Qt, Signal, QTimer
-from PySide6.QtWebEngineWidgets import QWebEngineView
-from PySide6.QtGui import QTextCursor
 
-from easyabc2.engines.abc2svg_engine import ABC2SVGEngine
-from easyabc2.engines.follow_engine import FollowScoreEngine, TimedSvgNote
+from easyabc2.engines.follow_engine import FollowScoreEngine
 from easyabc2.ui.abc_editor import ABCEditor
-from easyabc2.models.abc_document import AbcDocument, TuneInfo
+from easyabc2.models.abc_document import AbcDocument
 from easyabc2.ui.score_view2 import ScoreView
 from easyabc2.utils.easyabc_utils import *
 from easyabc2.ui.abc_assist_panel import AbcAssistPanel

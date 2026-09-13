@@ -7,18 +7,16 @@ import os
 import subprocess
 
 from PySide6.QtWidgets import (
-    QApplication, QMainWindow, QDockWidget, QListWidget, QTabWidget,
-    QMessageBox, QFileDialog, QInputDialog, QMenu,
+    QApplication, QMainWindow, QDockWidget, QTabWidget,
+    QMessageBox, QFileDialog, QMenu,
     QSlider, QWidgetAction, QWidget, QHBoxLayout, QLabel, QSizePolicy
 )
 from PySide6.QtCore import Qt, QTimer, QByteArray, QPoint
-from PySide6.QtWebEngineWidgets import QWebEngineView
 from PySide6.QtGui import QAction, QIcon, QTextCursor
 #from PySide6.QtPrintSupport import QPrinter, QPrintDialog
 
-from easyabc2.utils.easyabc_utils import get_app_data_dir, get_temp_dir, save_temp_abc, save_temp_svg, get_temp_dir_for_tab
+from easyabc2.utils.easyabc_utils import get_temp_dir, save_temp_abc, save_temp_svg
 #from easyabc2.utils.search_controller import SearchController
-from easyabc2.ui.tune_list_widget import TuneListWidget
 from easyabc2.ui.preferences_dialog import PreferencesDialog
 from easyabc2.ui.document_tab import DocumentTab
 from easyabc2.ui.play_range_selector_widget import RangeSelectorWidget
