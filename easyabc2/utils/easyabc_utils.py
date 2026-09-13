@@ -50,6 +50,11 @@ def save_temp_svg(text: str, temp_data_dir, filename="current_tune.svg"):
     path.write_text(text, encoding="utf-8")
     return path
 
+def save_temp_loadedsvg(text: str, temp_data_dir, filename="loaded_tune.svg"):
+    path = temp_data_dir / filename
+    path.write_text(text, encoding="utf-8")
+    return path
+
 def save_temp_mftext(text: str, temp_data_dir, filename="current_tune.mftext"):
     path = temp_data_dir / filename
     path.write_text(text, encoding="utf-8")

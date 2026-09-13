@@ -13,7 +13,7 @@ from easyabc2.engines.abc2svg_engine import ABC2SVGEngine
 from easyabc2.engines.follow_engine import FollowScoreEngine, TimedSvgNote
 from easyabc2.ui.abc_editor import ABCEditor
 from easyabc2.models.abc_document import AbcDocument, TuneInfo
-from easyabc2.ui.score_view import ScoreView
+from easyabc2.ui.score_view2 import ScoreView
 from easyabc2.utils.easyabc_utils import *
 from easyabc2.ui.abc_assist_panel import AbcAssistPanel
 from easyabc2.ui.editor_adapter import QtEditorAdapter
@@ -230,7 +230,10 @@ class DocumentTab(QWidget):
 
         self.is_score_view_loaded = False
         save_temp_svg(svg, self.temp_dir)
-        self.score_view.load_svg(svg)
+        loaded_svg = None
+        loaded_svg = self.score_view.load_svg(svg)
+        if loaded_svg:
+            save_temp_loadedsvg(loaded_svg, self.temp_dir)
         return svg
 
     # Internal API SVG
