@@ -614,11 +614,13 @@ class DocumentTab(QWidget):
         if not mftext or not abc_text.strip():
             logger.error("[DocumentTab] FollowEngine skipped: incomplete ABC or mftext")
             return
-        try:
-            midi_events = self._parse_mftext_to_midi_events(mftext, ticks_per_quarter)
-        except Exception as e:
-            logger.warning(f"[DocumentTab] Invalid mftext, skipping follow: {e}")
-            return
+        #try:
+        midi_events = self._parse_mftext_to_midi_events(mftext, ticks_per_quarter)
+
+        logger.debug(f"[DocumentTab] midi events: {midi_events}")
+        #except Exception as e:
+        #    logger.warning(f"[DocumentTab] Invalid mftext, skipping follow: {e}")
+        #    return
         logger.debug(f"[DocumentTab] midi_events: {midi_events}")
 
         # Do not try to build if no midi_events
@@ -626,109 +628,115 @@ class DocumentTab(QWidget):
             self.follow_engine.build2(abc_text, midi_events)
 
     def _parse_mftext_to_midi_events(self, mftext: str, ticks_per_quarter: int):
-        logger.debug("[DocumentTab] Parse mftect to midi events")
+        logger.debug("[DocumentTab] Parse mftext to midi events")
         # in mftext,
         # CntlParm lines with unknown are used to report corresponding row and col of note in abc text
         # CntlParm with unknown are always preceeding a note on instruction
         # to manage trill, mordent... off event are stored until end of track or a line with CntlParm
         # in this case the pending off is considered.
-        
-        pos_re = re.compile(r'^\s*(\d+\.\d+)\s+CntlParm\s+1\s+unknown\s+=\s*\d*\s+(\d+)')
+
+        pos_re = re.compile(r'^\s*(\d+\.\d+)\s+CntlParm\s+1\s+unknown\s+=\s*(\d+)')
         note_re = re.compile(r'^\s*(\d+\.\d+)\s+Note\s+(on|off)\s+(\d+)\s+(\d+)')
-        end_re = re.compile(r'^\s*(\d+\.\d+)\s+Meta\s+event\,\s+end\s+of\s+track')
+        end_re = re.compile(r'^\s*(\d+\.\d+)\s+Meta\s+event,\s+end\s+of\s+track')
 
         events = []
-        active = {}
-        pos_values = []
-        current_row = None
-        current_col = None
-        last_timestamp = None
-        pending_position = None
-        pending_stops = {}
+        pending_positions = []  # List all pending position waiting for note off or end of track
+        pos_values = []  # Values of positions (row, col)
+        current_note_on_timestamp = None  # Last Note on
         self.play_start_tick = 0
         self.play_end_tick = 0
 
         for line in mftext.splitlines():
+            # Manage End of track
             m = end_re.match(line)
             if m:
-                for key, stop_tick in pending_stops.items():
-                    start_tick, row, col = active.pop(key)
-                    events.append({
-                        "row": row,
-                        "col": col,
-                        "start_tick": start_tick,
-                        "stop_tick": stop_tick,
-                    })
-                pending_stops.clear()
                 timestamp = float(m.group(1))
                 tick = int(timestamp * ticks_per_quarter)
                 if tick >= self.play_end_tick:
+                    self.max_tick = tick
                     self.play_end_tick = tick
+
+                # Finalise pending position as end of track
+                if pending_positions and current_note_on_timestamp is not None:
+                    start_tick = int(current_note_on_timestamp * ticks_per_quarter)
+                    stop_tick = tick
+                    self._finalize_pending_positions(
+                        pending_positions, start_tick, stop_tick, events
+                    )
+                pending_positions.clear()
                 continue
-                
-            # ABC Position encoded in 5 values
+
+            # Detect position (row, col) via CntlParm
             m = pos_re.match(line)
             if m:
-                for key, stop_tick in pending_stops.items():
-                    start_tick, row, col = active.pop(key)
-                    events.append({
-                        "row": row,
-                        "col": col,
-                        "start_tick": start_tick,
-                        "stop_tick": stop_tick,
-                    })
-                pending_stops.clear()
-
-                timestamp = float(m.group(1))
                 value = int(m.group(2))
-                # New sequence or same timestamp
-                if not pos_values or timestamp == last_timestamp:
-                    pos_values.append(value)
-                    last_timestamp = timestamp
+                pos_values.append(value)
 
-                    if len(pos_values) == 5:
-                        v0, v1, v2, v3, v4 = pos_values
-                        row = (v0 << 14) + (v1 << 7) + v2
-                        col = (v3 << 7) + v4
-                        current_row = row
-                        current_col = col
-                        pending_position = PendingPos(row, col, timestamp)
-                        pos_values = []
-                        last_timestamp = None
-                else:
-                    # new timestamp → reset
-                    pos_values = [value]
-                    last_timestamp = timestamp
+                # Position decoded when 5 CntlParm Unknown
+                if len(pos_values) == 5:
+                    v0, v1, v2, v3, v4 = pos_values
+                    row = (v0 << 14) + (v1 << 7) + v2
+                    col = (v3 << 7) + v4
+                    pending_positions.append((row, col))
+                    pos_values = []
                 continue
 
-            # Note on/off
+            # Manage note on/off
             m = note_re.match(line)
             if m:
-                #if not current_row or not current_col:
-                #    continue
                 note_timestamp = float(m.group(1))
                 tick = int(note_timestamp * ticks_per_quarter)
                 onoff = m.group(2)
-                channel = int(m.group(3))
-                note_num = int(m.group(4))
-                key = (channel, note_num)
-                
 
                 if onoff == "on":
-                    if pending_position and note_timestamp >= pending_position.timestamp:
-                        current_row, current_col = pending_position.row, pending_position.col
-                        pending_position = None
-                        #current_row = current_row + tune_start_line - file_header_line
-
-                        active[key] = (tick, current_row, current_col)
+                    current_note_on_timestamp = note_timestamp
+                    # Wait for note off or end of track
                 else:
-                    if key in active:
-                        pending_stops[key] = tick
-                        self.max_tick = tick
-                        self.play_end_tick = tick
+                    # Complete position pending
+                    if pending_positions and current_note_on_timestamp is not None:
+                        start_tick = int(current_note_on_timestamp * ticks_per_quarter)
+                        stop_tick = tick
+                        self._finalize_pending_positions(
+                            pending_positions, start_tick, stop_tick, events
+                        )
+                        pending_positions.clear()
+                continue
+
+        # Finalize events
+        if pending_positions and current_note_on_timestamp is not None:
+            start_tick = int(current_note_on_timestamp * ticks_per_quarter)
+            stop_tick = self.play_end_tick
+            self._finalize_pending_positions(
+                pending_positions, start_tick, stop_tick, events
+            )
 
         events.sort(key=lambda e: e["start_tick"])
         return events
+
+    def _finalize_pending_positions(
+        self, pending_positions, start_tick, stop_tick, events
+    ):
+        """
+        For now spread equally the duration between all notes.
+        Todo: Use the duration present in the abc code to spread the duration accordingly
+        """
+        duration = stop_tick - start_tick
+        num_positions = len(pending_positions)
+
+        if num_positions == 0:
+            return
+
+        sub_duration = duration // num_positions
+
+        for i, (row, col) in enumerate(pending_positions):
+            new_start_tick = start_tick + i * sub_duration
+            new_stop_tick = new_start_tick + sub_duration
+            events.append({
+                "row": row,
+                "col": col,
+                "start_tick": new_start_tick,
+                "stop_tick": new_stop_tick,
+            })
 
     def _restore_playback_state_for_tune(self):
         logger.debug("[DocumentTab] Restore playback state for tune")

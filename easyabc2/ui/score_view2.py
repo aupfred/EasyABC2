@@ -466,6 +466,8 @@ class ScoreView(QWidget):
                 if not is_highlighted_by_higher_priority:
                     rect_item.setBrush(QBrush(color))
                     rect_item.setPen(QPen(color.darker(120), 1))
+                    #self.view.ensureVisible(rect_item, 50, 50)
+                    self.scroll_to_system_with_anticipation(note_id)
 
                 # Add note to type in any case
                 self.highlighted_notes[note_type].add(note_key)
@@ -890,7 +892,59 @@ class ScoreView(QWidget):
             db = QFontDatabase()
             self._available_fonts = [f.lower() for f in db.families()]
         return font_family.lower() in self._available_fonts
-    
+
+    def scroll_to_system_with_anticipation(self, current_note_id: int):
+        """
+        Smoothly scrolls only when the played note changes line,
+        placing the active staff 80px from the top of the display component.
+        """
+        note_key = str(current_note_id)
+        if note_key not in self.interactive_notes or not self.system_positions:
+            return
+
+        # 1. Extract the absolute Y position of the note in the global scene
+        rect_item = self.interactive_notes[note_key]
+        note_y = rect_item.sceneBoundingRect().top()
+
+        # 2. Identify which staff interval corresponds to this Y position
+        target_system_top = 0
+        for system in self.system_positions:
+            if system['top'] <= note_y <= system['bottom']:
+                target_system_top = system['top']
+                break
+
+        # 3. Translate the scene coordinate to the graphics view pixel coordinates
+        view_pos = self.view.mapFromScene(0, target_system_top)
+
+        # Get the vertical scroll bar
+        scroll_bar = self.view.verticalScrollBar()
+
+        # The new target is the current value + the relative position found - 80px top margin
+        target_scroll_value = scroll_bar.value() + view_pos.y() - 80
+
+        # Safety bounds to avoid scrolling beyond the document
+        target_scroll_value = max(scroll_bar.minimum(), min(target_scroll_value, scroll_bar.maximum()))
+
+        # 4. Trigger smooth animation
+        if not hasattr(self, "scroll_animation"):
+            from PySide6.QtCore import QVariantAnimation, QEasingCurve
+            self.scroll_animation = QVariantAnimation(self)
+            self.scroll_animation.setDuration(350)  # Scrolling speed in milliseconds
+            self.scroll_animation.setEasingCurve(QEasingCurve.InOutCubic)  # Smooth easing curve
+
+            # Connect the signal only once when creating the animation
+            self.scroll_animation.valueChanged.connect(
+                lambda val: self.view.verticalScrollBar().setValue(int(val))
+            )
+
+        # Only start scrolling if the difference is significant and no animation is already running
+        from PySide6.QtCore import QAbstractAnimation
+        is_running = self.scroll_animation.state() == QAbstractAnimation.State.Running
+        if abs(scroll_bar.value() - target_scroll_value) > 15 and not is_running:
+            self.scroll_animation.setStartValue(scroll_bar.value())
+            self.scroll_animation.setEndValue(target_scroll_value)
+            self.scroll_animation.start()
+
 def resolve_generic_font(font_name: str) -> str:
     """
     Use System font for generic family such as (serif, sans-serif, monospace).
